@@ -8,14 +8,35 @@ L <- 32 # total number of dimensions in data set
 
 set.seed(2016)
 data <- tibble(IID = 1:N)
-for (i in 1:L) {
+for (j in 1:L) {
   # data for dimensions is normally distributed
-  # dimension i's variance is 1/i
-  data[,paste0("PC",i)] <- rnorm(N, mean=0, sd = (1/i)**2)
-  print(i)
+  # dimension j's variance is 1/j
+  data[,paste0("PC",j)] <- rnorm(N, mean=0, sd = (1/j)**2)
+  print(j)
 }
 
-# plots data for first two dimensions
+# generates fake output data based on PC data
+PC_coeffs <- rnorm(L)
+data$PGS <- as.numeric(NA)
+data$phenotype <- rnorm(N)
+PC_error_prop <- 0.5
+absolute_error_prop <- 1
+for (i in 1:nrow(data)) {
+  pos <- data[i,2:(1+L)] %>% unlist() %>% unname()
+  PC_error <- PC_coeffs %*% pos
+  #origin_dist <- dist(rbind(data[i,2:(1+L)], rep(0,L)))[[1]]
+  PGS <- data$phenotype[i] + PC_error_prop*(PC_error) + absolute_error_prop*rnorm(1)
+  data$PGS[i] <- PGS
+  if (i %% 100 == 0) {print(i)}
+}
+# plots (PGS-phenotype) by PC1
+ggplot(data, aes(x=PC3, y=(PGS-phenotype))) +
+  geom_point(alpha=0.03) +
+  geom_smooth(method="lm", color="blue") +
+  geom_abline(slope=PC_coeffs[3], intercept = 0)
+
+
+# plots PC data for first two dimensions
 ggplot(data, aes(x=PC1, y=PC2)) +
   geom_point(alpha = 0.1)
 
