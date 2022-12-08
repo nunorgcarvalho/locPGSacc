@@ -45,3 +45,34 @@ ggplot(predict_data, aes(x=abs(E1), y=SE)) +
 lm_error <- lm(SE ~ abs(E1),data=predict_data)
 summary(lm_error)
 
+# frNN
+library(dbscan)
+
+R <- 0.25
+data_dim <- full_data %>% select(E1)
+t1 <- Sys.time()
+NN1 <- dbscan::frNN(data_dim, eps=R)
+Sys.time() - t1
+
+# calculates local PGS accuracy
+locPGSaccs <- c()
+#origin_dists <- c()
+for (i in 1:N) {
+  #origin_dist <- sum(data[i,2:(1+L)]**2)
+  #origin_dists <- c(origin_dists, origin_dist)
+  
+  neighbors <- c(i,NN1$id[[i]])
+  local_data <- predict_data[neighbors,c("Y_hat", "Y")]
+  cor1 <- cor(local_data$Y_hat,local_data$Y)
+  locPGSaccs <- c(locPGSaccs, cor1**2)
+  if (i %% 100 == 0) {print(i)}
+}
+predict_data$locPGSacc <- locPGSaccs
+
+ggplot(predict_data, aes(x=E1, y=locPGSaccs)) +
+  geom_point(alpha = 0.05) +
+  geom_smooth(method='lm') +
+  ylim(0,1)
+
+ggplot(local_data, aes(x=Y,y=Y_hat)) +
+  geom_point(alpha=0.1)
