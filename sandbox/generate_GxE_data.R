@@ -9,7 +9,7 @@ full_data <- tibble(IID = 1:N)
 # true phenotype parameters
 B0 <- 0
 B1 <- 2
-B2 <- 1
+B2 <- 2
 H2 <- 0.5
 
 # simulation parameters
@@ -29,3 +29,19 @@ full_data$Y <- B0 + (B1 * full_data$g1) + (B2 * full_data$g1 * full_data$E1) + (
 
 true_model <- lm(Y ~ g1 + g1*E1, data=full_data)
 summary(true_model)
+
+
+simple_model <- lm(Y ~ g1, data=full_data)
+summary(simple_model)
+
+predict_data <- full_data %>%
+  mutate(Y_hat = predict(simple_model),
+         SE = (Y_hat - Y)^2)
+
+ggplot(predict_data, aes(x=abs(E1), y=SE)) +
+  geom_point(alpha = 0.05) +
+  geom_smooth(method='lm')
+
+lm_error <- lm(SE ~ abs(E1),data=predict_data)
+summary(lm_error)
+
