@@ -4,34 +4,46 @@ library(tidyverse)
 
 N <- 16000 # total number of individuals in test data set
 L <- 32 # total number of dimensions in data set
+M <- 5 # number of SNPs
+Ei <- 1 # SNP number that has GxE
 full_data <- tibble(IID = 1:N)
 
 # true phenotype parameters
+H2 <- 0.6 # how much variance is explained by genetics
+prop_h2gxe <- 0.5 # how much of the h2 is explained by GxE (as opposed to additive effects)
 B0 <- 0
-B1 <- 2
-B2 <- 2
-H2 <- 0.5
+#B1 <- 2
+B1 <- rnorm(M)
+B2 <- 1
 
 # simulation parameters
-AF <- 0.5
-var_B1g1 <- B1^2 * AF * (1-AF)
-var_B2g1E1 <- B2^2 * ( (AF^2 * 1) + (0^2 * AF*(1-AF)) + (AF * (1-AF) * 1^2) )
-C0 <- sqrt((var_B1g1 + var_B2g1E1) * ((1-H2)/H2) )
+#AF <- 0.5
+AF <- runif(M)
+var_additive <- sum(B1^2 * AF * (1-AF))
+var_GxE_base <- (AF[Ei]^2 * 1) + (0^2 * AF[Ei]*(1-AF[Ei])) + (AF[Ei] * (1-AF[Ei]) * 1^2)
+B2 <- sqrt( (var_additive/var_GxE_base) * (prop_h2gxe/(1-prop_h2gxe)))
+C0 <- sqrt((var_additive + var_GxE) * ((1-H2)/H2) )
 
 #set.seed(2016)
-full_data$g1 <- as.integer(sample(c(0,1),N,replace=TRUE, prob=c(1-AF,AF)))
+for (i in 1:M) {
+  col_g <- paste0("g",i)
+  full_data[,col_g] <- as.integer(sample(c(0,1),N,replace=TRUE, prob=c(1-AF[i],AF[i])))
+}
+#full_data$g1 <- as.integer(sample(c(0,1),N,replace=TRUE, prob=c(1-AF,AF)))
 full_data$E1 <- rnorm(N)
 full_data$err <- rnorm(N)
-full_data$Y <- B0 + (B1 * full_data$g1) + (B2 * full_data$g1 * full_data$E1) + (C0 * full_data$err)
+#full_data$additive_effect <- rowSums(full_data[,paste0("g",1:M)] * B1)
+full_data$additive_effect <- as.matrix(full_data[,paste0("g",1:M)]) %*% B1
+full_data$Y <- B0 + (full_data$additive_effect) + (B2 * full_data$g1 * full_data$E1) + (C0 * full_data$err)
 #full_data$Y <- B0 + (B1 * full_data$g1) + (C0 * full_data$err)
 
 #ggplot(full_data, aes(x=E1, y=Y, color=as.factor(g1))) + geom_point(alpha=0.05)
 
-true_model <- lm(Y ~ g1 + g1*E1, data=full_data)
+true_model <- lm(Y ~ g1 + g2 + g3 + g4 + g5 + g1*E1, data=full_data)
 summary(true_model)
 
 
-simple_model <- lm(Y ~ g1, data=full_data)
+simple_model <- lm(Y ~ g1 + g2 + g3 + g4 + g5, data=full_data)
 summary(simple_model)
 
 predict_data <- full_data %>%
@@ -48,11 +60,11 @@ summary(lm_error)
 # frNN
 library(dbscan)
 
-R <- 0.25
-data_dim <- full_data %>% select(E1)
-t1 <- Sys.time()
-NN1 <- dbscan::frNN(data_dim, eps=R)
-Sys.time() - t1
+R <- 0.5
+#data_dim <- full_data %>% select(E1)
+#t1 <- Sys.time()
+#NN1 <- dbscan::frNN(data_dim, eps=R)
+#Sys.time() - t1
 
 # calculates local PGS accuracy
 locPGSaccs <- c()
@@ -74,5 +86,17 @@ ggplot(predict_data, aes(x=E1, y=locPGSaccs)) +
   geom_smooth(method='lm') +
   ylim(0,1)
 
-ggplot(local_data, aes(x=Y,y=Y_hat)) +
-  geom_point(alpha=0.1)
+ggplot(predict_data, aes(x=abs(E1), y=locPGSaccs)) +
+  geom_point(alpha = 0.05) +
+  geom_smooth(method='lm') +
+  ylim(0,1)
+
+lm_acc <- lm(locPGSacc ~ abs(E1),data=predict_data)
+summary(lm_acc)
+
+### checking individual dots
+full_data %>% arrange(-abs(E1))
+i <- 6555
+neighbors <- c(i,NN1$id[[i]])
+local_data <- predict_data[neighbors,c("Y_hat", "Y")]
+ggplot(local_data, aes(x=Y,y=Y_hat)) + geom_point(alpha=0.3)
