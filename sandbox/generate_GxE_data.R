@@ -10,24 +10,24 @@ full_data <- tibble(IID = 1:N)
 
 # true phenotype parameters
 H2 <- 0.6 # how much variance is explained by genetics
-prop_h2gxe <- 0.5 # how much of the h2 is explained by GxE (as opposed to additive effects)
+prop_h2gxe <- 0.1 # how much of the h2 is explained by GxE (as opposed to additive effects)
 B0 <- 0
 #B1 <- 2
 B1 <- rnorm(M)
-B2 <- 1
+#B2 <- 1
 
 # simulation parameters
 #AF <- 0.5
-AF <- runif(M)
-var_additive <- sum(B1^2 * AF * (1-AF))
-var_GxE_base <- (AF[Ei]^2 * 1) + (0^2 * AF[Ei]*(1-AF[Ei])) + (AF[Ei] * (1-AF[Ei]) * 1^2)
+AF <- runif(M, 0.05,0.95)
+var_additive <- sum(2 * B1^2 * AF * (1-AF))
+var_GxE_base <- ((2*AF[Ei])^2 * 1) + (0^2 * 2 * AF[Ei]*(1-AF[Ei])) + (2 * AF[Ei] * (1-AF[Ei]) * 1^2)
 B2 <- sqrt( (var_additive/var_GxE_base) * (prop_h2gxe/(1-prop_h2gxe)))
 C0 <- sqrt((var_additive + var_GxE) * ((1-H2)/H2) )
 
 #set.seed(2016)
 for (i in 1:M) {
   col_g <- paste0("g",i)
-  full_data[,col_g] <- as.integer(sample(c(0,1),N,replace=TRUE, prob=c(1-AF[i],AF[i])))
+  full_data[,col_g] <- sample(c(0,1,2),N,replace=TRUE, prob=c((1-AF[i])^2,2*AF[i]*(1-AF[i]),AF[i]^2))
 }
 #full_data$g1 <- as.integer(sample(c(0,1),N,replace=TRUE, prob=c(1-AF,AF)))
 full_data$E1 <- rnorm(N)
@@ -60,11 +60,11 @@ summary(lm_error)
 # frNN
 library(dbscan)
 
-R <- 0.5
-#data_dim <- full_data %>% select(E1)
-#t1 <- Sys.time()
-#NN1 <- dbscan::frNN(data_dim, eps=R)
-#Sys.time() - t1
+R <- 0.25
+data_dim <- full_data %>% select(E1)
+t1 <- Sys.time()
+NN1 <- dbscan::frNN(data_dim, eps=R)
+Sys.time() - t1
 
 # calculates local PGS accuracy
 locPGSaccs <- c()
@@ -81,12 +81,13 @@ for (i in 1:N) {
 }
 predict_data$locPGSacc <- locPGSaccs
 
-ggplot(predict_data, aes(x=E1, y=locPGSaccs)) +
+ggplot(predict_data, aes(x=E1, y=locPGSacc)) +
   geom_point(alpha = 0.05) +
-  geom_smooth(method='lm') +
+  geom_smooth(data=predict_data%>%filter(E1 <= 0),method='lm', color="red") +
+  geom_smooth(data=predict_data%>%filter(E1 >= 0),method='lm', color="blue") +
   ylim(0,1)
 
-ggplot(predict_data, aes(x=abs(E1), y=locPGSaccs)) +
+ggplot(predict_data, aes(x=abs(E1), y=locPGSacc)) +
   geom_point(alpha = 0.05) +
   geom_smooth(method='lm') +
   ylim(0,1)
@@ -94,9 +95,8 @@ ggplot(predict_data, aes(x=abs(E1), y=locPGSaccs)) +
 lm_acc <- lm(locPGSacc ~ abs(E1),data=predict_data)
 summary(lm_acc)
 
-### checking individual dots
-full_data %>% arrange(-abs(E1))
-i <- 6555
-neighbors <- c(i,NN1$id[[i]])
-local_data <- predict_data[neighbors,c("Y_hat", "Y")]
-ggplot(local_data, aes(x=Y,y=Y_hat)) + geom_point(alpha=0.3)
+lm_acc1 <- lm(locPGSacc ~ E1,data=predict_data%>%filter(E1 <= 0))
+summary(lm_acc1)
+lm_acc2 <- lm(locPGSacc ~ E1,data=predict_data%>%filter(E1 >= 0))
+summary(lm_acc2)
+
