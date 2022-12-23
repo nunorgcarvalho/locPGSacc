@@ -1,12 +1,12 @@
 #!/bin/sh
 #SBATCH -c 20
-#SBATCH -t 4-00:00
+#SBATCH -t 2-00:00
 #SBATCH -p medium
 #SBATCH --mem=125G
 #SBATCH -o BMI_BOLTLMM.out
 #SBATCH -e BMI_BOLTLMM.err
 
-dir_scratch="~/scratch3/locPGScc/"
+dir_scratch="~/scratch3/locPGSacc/"
 
 ~/bolt \
 --numThreads 20 \
