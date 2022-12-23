@@ -1,3 +1,7 @@
+# Slurm files
+*.out
+*.err
+
 # History files
 .Rhistory
 .Rapp.history
