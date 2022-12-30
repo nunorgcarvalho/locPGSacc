@@ -1,0 +1,7 @@
+# sets working directory
+setwd("./")
+
+# sets location of phenotype file containing desired traits
+loc_pheno_full <- "/n/groups/patel/uk_biobank/main_data_34521/ukb34521.tab"
+# sets location of 40 PCs
+loc_40PCs <- "~/scratch3/key_data/UKB_40PCs_500k.txt"
