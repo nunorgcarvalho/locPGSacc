@@ -1,4 +1,5 @@
 scratch/*
+code/run_BOLTLMM_*
 
 # Slurm files
 *.out
