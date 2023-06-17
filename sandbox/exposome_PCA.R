@@ -3,7 +3,7 @@ library(tidyverse)
 library(data.table)
 library(ggbiplot)
 
-loc_pheno <- "~/scratch3/PXS_pipeline/pheno_EC.txt"
+loc_pheno <- "~/group_nuno/PXS-pipeline/scratch/pheno_EC.txt"
 pheno <- as_tibble(fread(loc_pheno))
 
 pheno_matrix <- pheno %>% select(starts_with("f"), -FID) %>%
@@ -57,3 +57,4 @@ pca3 <- prcomp(pheno_imputed)
 
 pca3_tibble <- as_tibble(pca3$x)
 summary(pca3)
+
