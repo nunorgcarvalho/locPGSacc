@@ -1,5 +1,4 @@
 setwd("~/group_nuno/locPGSacc/code/")
-source("../code/locPGSacc.R")
 
 if (!exists("data_raw")) {
   data_raw <- as_tibble(fread("~/group_nuno/locPGSacc/scratch/pheno.txt"))
@@ -11,9 +10,10 @@ if (!exists("data_raw")) {
 col_dims <- paste0("pc",1:40)
 col_pheno <- "BMI"
 col_PGS <- "BMI_PGS"
-R <- 25
+R <- 40
 k <- 500
 
+source("../code/locPGSacc.R")
 data_output <- locPGSacc(data,
                          col_dims = col_dims,
                          col_pheno = col_pheno,
@@ -23,14 +23,16 @@ data_output <- locPGSacc(data,
                          mode="hybrid"
                          )
 
-colnames(data_output)
 hist(log2(data_output$n_neighbors))
-ggplot(data_output, aes(x=pc1, y=locPGSacc)) +
-  geom_point(alpha=0.1) + geom_smooth(method='lm')
 
-dim_means <- colMeans(data_output %>% select(all_of(col_dims)))
-data_output <- data_output %>%
-  mutate(PC_dist = sqrt(rowSums((select(., all_of(col_dims)) - dim_means)^2)))
-ggplot(data_output, #[data_output$PC_dist<50,],
+source("../code/dim_dist.R")
+data_output <- dim_dist(data_output,
+                        col_dims = col_dims,
+                        reference_point = 0,
+                        col_dist = "PC_dist"
+                        )
+ggplot(data_output[data_output$PC_dist<100,],
        aes(x=PC_dist, y=locPGSacc)) +
   geom_point(alpha=1, aes(color=log2(n_neighbors))) + geom_smooth(method='lm')
+cor.test(data_output$PC_dist[data_output$PC_dist<100],
+         data_output$locPGSacc[data_output$PC_dist<100])

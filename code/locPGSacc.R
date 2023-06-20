@@ -1,5 +1,6 @@
+# returns inputted data table with 'n_neighbors' and 'locPGSacc' columns
+
 library(tidyverse)
-library(data.table)
 library(dbscan)
 
 locPGSacc <- function (
@@ -10,13 +11,14 @@ locPGSacc <- function (
     R = -1,
     k = -1,
     mode = "fr" # fr=fixed-radius, k=k closest neighbors, hybrid=highest n_neighbors of fr and k
-    ) {
-  
-  # Checks if data table already contains an output tha
+) {
+  # Checks if col_dims are in data table
+  if ( !all(col_dims %in% colnames(data))) {stop("Data table does not contain all specified col_dims")}
+  # Checks if data table already contains an output column
   cols_needed <- c("n_neighbors","locPGSacc")
-  if (any(cols_needed %in% colnames(data))) {
+  if ( any(cols_needed %in% colnames(data)) ) {
     cols_duplicated <- cols_needed[cols_needed %in% colnames(data)]
-    stop(paste0(c("Data table already contains at least one column used for output purposes:", cols_duplicated), collapse=" "))
+    warning(paste0(c("Data table already contains at least one column used for output purposes:", cols_duplicated), collapse=" "))
   }
   
   data_dims <- data %>% select(any_of(col_dims))
