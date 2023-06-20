@@ -33,6 +33,8 @@ data_output <- dim_dist(data_output,
                         )
 ggplot(data_output[data_output$PC_dist<100,],
        aes(x=PC_dist, y=locPGSacc)) +
-  geom_point(alpha=1, aes(color=log2(n_neighbors))) + geom_smooth(method='lm')
-cor.test(data_output$PC_dist[data_output$PC_dist<100],
-         data_output$locPGSacc[data_output$PC_dist<100])
+  geom_point(alpha=0.1, aes(color=log2(n_neighbors))) + geom_smooth(method='lm')
+
+source("../code/plot_PGS_decay.R")
+plot_PGS_decay(data_output[data_output$PC_dist<1000,],
+               col_dist = "PC_dist")
