@@ -2,6 +2,7 @@
 
 library(tidyverse)
 library(dbscan)
+source("add_self2neighborhood.R")
 
 locPGSacc <- function (
     data,
@@ -23,20 +24,20 @@ locPGSacc <- function (
   
   data_dims <- data %>% select(any_of(col_dims))
   n_samples <- nrow(data_dims)
+  if (n_sample > 20000) {stop("N is too big for this algorithm. Use locPGSacc.FAST() instead.")}
   if (k >= n_samples) {warning("k=",k," is bigger than number of samples")}
   
-  t1 <- Sys.time()
   if (mode=="fr") {
     # Fixed-radius mode
     print(paste0("Computing fixed-radius=",R," nearest neighbors for ",n_samples," samples"))
-    NN <- dbscan::frNN(data_dims, eps=R, sort=FALSE)
-    NN_ids <- NN$id
-    data$n_neighbors <- sapply(NN$id, length)
+    NNfr <- dbscan::frNN(data_dims, eps=R, sort=FALSE)
+    NN_ids <- NNfr$id %>% add_self2neighborhood()
+    data$n_neighbors <- sapply(NN_ids, length)
   } else if (mode=="k") {
     # k-nearest mode
     print(paste0("Computing k=",k," nearest neighbors for ",n_samples," samples"))
-    NN <- dbscan::kNN(data_dims, k=k, sort=FALSE)
-    NN_ids <- split(NNk$id,seq_len(nrow(NNk$id)))
+    NNk <- dbscan::kNN(data_dims, k=k, sort=FALSE)
+    NN_ids <- split(NNk$id,seq_len(nrow(NNk$id))) %>% add_self2neighborhood()
     data$n_neighbors <- k
   } else if (mode=="hybrid") {
     # hybrid fr+k mode
@@ -46,11 +47,14 @@ locPGSacc <- function (
     NN_ids <- NNfr$id
     # computes NN with k-nearest for points with <k fixed-radius neighbors
     small_neighborhoods <- (1:nrow(data))[sapply(NNfr$id, length) < k]
-    NNk <- dbscan::kNN(data_dims, k=k, sort=FALSE, query=data_dims[small_neighborhoods,])
-    NN_ids[small_neighborhoods] <- split(NNk$id,seq_len(nrow(NNk$id)))
+    if (length(small_neighborhoods > 0)) {
+      NNk <- dbscan::kNN(data_dims, k=k, sort=FALSE, query=data_dims[small_neighborhoods,])
+      NN_ids[small_neighborhoods] <- split(NNk$id,seq_len(nrow(NNk$id)))
+    }
+    
+    NN_ids <- add_self2neighborhood(NN_ids)
     data$n_neighbors <- sapply(NN_ids, length)
   }
-  Sys.time() - t1
   
   print("Computing correlation within each neighborhood")
   r_values <- c()
