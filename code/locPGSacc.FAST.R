@@ -20,6 +20,10 @@ locPGSacc.FAST <- function (
   # sets seed if given
   if (!is.na(seed)) { set.seed(seed) }
   
+  # Checks if correct parameter was supplied
+  if (mode != "k" & R=-1) {stop("R must be supplied")}
+  if (mode != "fr" & k=-1) {stop("k must be supplied")}
+  
   # Checks if col_dims are in data table
   if ( !all(col_dims %in% colnames(data))) {stop("Data table does not contain all specified col_dims")}
   # Checks if data table already contains an output column
@@ -42,7 +46,9 @@ locPGSacc.FAST <- function (
   if (verbose) {print(paste0("Looping until less than ",ceiling(n_samples*(1-coverage))," unhoused"))}
   
   print(paste0("Computing nearest neighbors for ",n_samples," samples using ",mode,
-               "-mode with the settings", ifelse(mode!="k"," R = ",R), ifelse(mode!="fr"," k = ",k)))
+               "-mode with the settings",
+               ifelse(mode!="k",paste(" R =",R),""),
+               ifelse(mode!="fr",paste(" k =",k),"")))
   while(sum(housing < multiplier) > n_samples*(1-coverage)) {
     unhoused <- (1:n_samples)[housing < multiplier]
     if (length(unhoused) == 1) {anchor <- unhoused
@@ -75,6 +81,8 @@ locPGSacc.FAST <- function (
     housing[ NN_anchor ] <- housing[ NN_anchor ] + 1
     NN_ids[[anchor]] <- NN_anchor
   }
+  print(paste0("Formed ", length(anchors), " neighborhoods for a coverage of ",
+               coverage," and multiplier of ", multiplier))
   
   # gets number of neighbors
   data$n_neighbors <- as.numeric(NA)

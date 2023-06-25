@@ -11,8 +11,14 @@ locPGSacc <- function (
     col_PGS,
     R = -1,
     k = -1,
-    mode = "fr" # fr=fixed-radius, k=k closest neighbors, hybrid=highest n_neighbors of fr and k
+    mode = "hybrid", # fr=fixed-radius, k=k closest neighbors, hybrid=highest n_neighbors of fr and k
+    force_largeN = FALSE
 ) {
+  
+  # Checks if correct parameter was supplied
+  if (mode != "k" & R=-1) {stop("R must be supplied")}
+  if (mode != "fr" & k=-1) {stop("k must be supplied")}
+  
   # Checks if col_dims are in data table
   if ( !all(col_dims %in% colnames(data))) {stop("Data table does not contain all specified col_dims")}
   # Checks if data table already contains an output column
@@ -24,24 +30,28 @@ locPGSacc <- function (
   
   data_dims <- data %>% select(any_of(col_dims))
   n_samples <- nrow(data_dims)
-  if (n_sample > 20000) {stop("N is too big for this algorithm. Use locPGSacc.FAST() instead.")}
+  if (n_samples > 20000 & !force_largeN) {
+    stop("N is (probably) too big for this algorithm. Use locPGSacc.FAST() instead,
+         or set 'force_largeN'to TRUE if you are sure you want to proceed")
+    }
   if (k >= n_samples) {warning("k=",k," is bigger than number of samples")}
   
+  print(paste0("Computing nearest neighbors for ",n_samples," samples using ",mode,
+               "-mode with the settings",
+               ifelse(mode!="k",paste(" R =",R),""),
+               ifelse(mode!="fr",paste(" k =",k),"")))
   if (mode=="fr") {
     # Fixed-radius mode
-    print(paste0("Computing fixed-radius=",R," nearest neighbors for ",n_samples," samples"))
     NNfr <- dbscan::frNN(data_dims, eps=R, sort=FALSE)
     NN_ids <- NNfr$id %>% add_self2neighborhood()
     data$n_neighbors <- sapply(NN_ids, length)
   } else if (mode=="k") {
     # k-nearest mode
-    print(paste0("Computing k=",k," nearest neighbors for ",n_samples," samples"))
     NNk <- dbscan::kNN(data_dims, k=k, sort=FALSE)
     NN_ids <- split(NNk$id,seq_len(nrow(NNk$id))) %>% add_self2neighborhood()
     data$n_neighbors <- k
   } else if (mode=="hybrid") {
     # hybrid fr+k mode
-    print(paste0("Computing hybrid fixed-radius=",R," & k=",k," nearest neighbors for ",n_samples," samples"))
     # computes NN with fixed-radius
     NNfr <- dbscan::frNN(data_dims, eps=R, sort=FALSE)
     NN_ids <- NNfr$id
@@ -51,14 +61,13 @@ locPGSacc <- function (
       NNk <- dbscan::kNN(data_dims, k=k, sort=FALSE, query=data_dims[small_neighborhoods,])
       NN_ids[small_neighborhoods] <- split(NNk$id,seq_len(nrow(NNk$id)))
     }
-    
     NN_ids <- add_self2neighborhood(NN_ids)
     data$n_neighbors <- sapply(NN_ids, length)
   }
   
+  # computes correlation between phenotype and PGS for phenotype
   print("Computing correlation within each neighborhood")
   r_values <- c()
-  # computes correlation between phenotype and PGS for phenotype
   for (i in 1:nrow(data)) {
     r <- cor(data[ NN_ids[[i]], ][[ col_pheno ]],
              data[ NN_ids[[i]], ][[ col_PGS ]])

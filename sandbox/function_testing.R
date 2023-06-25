@@ -76,7 +76,7 @@ data_output <- locPGSacc.FAST(data,
                          mode="hybrid",
                          coverage=0.98,
                          multiplier = 3,
-                         verbose = TRUE
+                         verbose = FALSE
 )
 
 ggplot(data_output, aes(x=pc1, y=pc2)) +
