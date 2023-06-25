@@ -1,5 +1,4 @@
-scratch/*
-code/run_BOLTLMM_*
+notebook*
 
 # Slurm files
 *.out

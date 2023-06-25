@@ -2,7 +2,7 @@
 
 library(tidyverse)
 library(dbscan)
-source("add_self2neighborhood.R")
+source("R/add_self2neighborhood.R")
 
 locPGSacc <- function (
     data,
@@ -16,8 +16,8 @@ locPGSacc <- function (
 ) {
   
   # Checks if correct parameter was supplied
-  if (mode != "k" & R=-1) {stop("R must be supplied")}
-  if (mode != "fr" & k=-1) {stop("k must be supplied")}
+  if (mode != "k" & R==-1) {stop("R must be supplied")}
+  if (mode != "fr" & k==-1) {stop("k must be supplied")}
   
   # Checks if col_dims are in data table
   if ( !all(col_dims %in% colnames(data))) {stop("Data table does not contain all specified col_dims")}
@@ -47,7 +47,7 @@ locPGSacc <- function (
     data$n_neighbors <- sapply(NN_ids, length)
   } else if (mode=="k") {
     # k-nearest mode
-    NNk <- dbscan::kNN(data_dims, k=k, sort=FALSE)
+    NNk <- dbscan::kNN(data_dims, k=k-1, sort=FALSE)
     NN_ids <- split(NNk$id,seq_len(nrow(NNk$id))) %>% add_self2neighborhood()
     data$n_neighbors <- k
   } else if (mode=="hybrid") {

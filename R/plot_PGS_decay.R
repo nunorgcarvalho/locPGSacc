@@ -1,6 +1,6 @@
 # plots locPGSacc against PC distance
 library(tidyverse)
-source("pvalue_to_text.R")
+source("R/pvalue_to_text.R")
 
 
 plot_PGS_decay <- function(
