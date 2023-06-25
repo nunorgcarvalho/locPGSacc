@@ -8,7 +8,9 @@ plot_PGS_decay <- function(
     col_PGSacc = "locPGSacc",
     col_dist = "dim_dist",
     col_n_neighbors = "n_neighbors", # set to "" if not wanted to be plotted
-    dist_limits = NA
+    dist_limits = NA,
+    col_pheno = NA, #optional
+    col_PGS = NA #optional
     
 ) {
   # checks if columns are in data table
@@ -28,16 +30,24 @@ plot_PGS_decay <- function(
   
   # makes new data table with just relevant columns and data
   data_plot <- data %>%
-    select(dist = !!enquo(col_dist),
-           locPGSacc = !!enquo(col_PGSacc),
-           n_neighbors = !!enquo(col_n_neighbors)) %>%
+    dplyr::rename(dist = !!enquo(col_dist),
+                  locPGSacc = !!enquo(col_PGSacc),
+                  n_neighbors = !!enquo(col_n_neighbors)) %>%
     filter(dist >= min(dist_limits), dist <= max(dist_limits))
+  n_data_points <- sum(!is.na(data_plot$locPGSacc))
+  alpha <- min(1, 1000 / n_data_points)
   
-  gg <- ggplot(data_plot, aes(x = dist, y = locPGSacc))
+  gg <- ggplot(data_plot, aes(x = dist, y = locPGSacc)) +
+    theme_light()
   if (col_n_neighbors != "") {
-    gg <- gg + geom_point(alpha = 1000 / nrow(data), aes(color = log2(n_neighbors)))
+    gg <- gg + geom_point(alpha = alpha, aes(color = log2(n_neighbors)))
   } else {
-    gg <- gg + geom_point(alpha = 1000 / nrow(data))
+    gg <- gg + geom_point(alpha = alpha)
+  }
+  
+  if (!is.na(col_pheno) & !is.na(col_PGS)) {
+    r_global <- cor(data_plot[[col_pheno]], data_plot[[col_PGS]])
+    gg <- gg + geom_hline(yintercept = r_global, color="grey")
   }
   
   cor1 <- cor.test(data_plot$locPGSacc, data_plot$dist)
