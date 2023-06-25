@@ -6,6 +6,7 @@ dim_dist <- function(
     data,
     col_dims,
     reference_point = NA, # must be same length as number of dimensions, except 0 = origin
+    centroid_indices = NA, # vector of indices to compute centroid for (if no reference point given). Leave NA for all points
     col_dist = "dim_dist"
 ) {
   # Checks if col_dims are in data table
@@ -20,8 +21,12 @@ dim_dist <- function(
   
   # if not supplied, reference point is set to mean of data (centroid)
   if (is.na(reference_point)) {
-    print("Setting reference point to the centroid of points (mean of dimensions)")
-    reference_point <- colMeans(data_dims)
+    print("Setting reference point to the centroid of specified points (mean of dimensions)")
+    if (all(!is.na(centroid_indices))) {
+      reference_point <- colMeans(data_dims[centroid_indices,])
+    } else {
+      reference_point <- colMeans(data_dims)
+    }
   }
   # reports error if length of reference_point vector is not the same as number of dimensions
   if ( (length(reference_point) != length(col_dims)) & (!identical(reference_point, 0))) {
