@@ -4,7 +4,7 @@ if (!exists("data_raw")) {
   data_raw <- as_tibble(fread("~/group_nuno/locPGSacc/scratch/pheno.txt"))
 }
 
-N <- 100000
+N <- 10000
 #N <- 484198
 i_keep <- sample(1:nrow(data_raw),N, replace = FALSE)
 data <- data_raw %>% filter(row_number() %in% i_keep) %>% select(-BMI_z)
@@ -37,7 +37,7 @@ data_output <- dim_dist(data_output,
                         )
 
 source("../code/plot_PGS_decay.R")
-plot_PGS_decay(data_output[data_output$PC_dist<100,],
+plot_PGS_decay(data_output[data_output$PC_dist<1000,],
                col_dist = "PC_dist")
 
 
@@ -55,9 +55,26 @@ ggplot(data_dims, aes(x=pc1, y=pc2)) +
 
 ggplot(data_dims, aes(x=pc1, y=pc2)) +
   geom_point(alpha=0.1) +
-  geom_point(data=data_dims[NN_ids[[1]], ], color="blue") +
-  geom_point(data=data_dims[anchor,], color="red")
+  geom_point(data=data_dims[housing>0, ], color="blue") +
+  geom_point(data=data_dims[anchors,], color="red")
 
 ggplot(data_dims, aes(x=pc1, y=pc2)) +
   geom_point(alpha=0.1) +
   geom_point(data=data_dims[homeless, ], color="blue")
+
+##
+source("../code/locPGSacc.FAST.R")
+data_output <- locPGSacc.FAST(data,
+                         col_dims = col_dims,
+                         col_pheno = col_pheno,
+                         col_PGS = col_PGS,
+                         R = R,
+                         k = k,
+                         mode="hybrid",
+                         coverage=10,
+                         verbose = TRUE
+)
+
+ggplot(data_output, aes(x=pc1, y=pc2)) +
+  geom_point(alpha=0.1) +
+  geom_point(data=data_output[!is.na(data_output$locPGSacc),], color="red")
