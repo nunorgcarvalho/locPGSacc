@@ -37,8 +37,11 @@ data_output <- dim_dist(data_output,
                         )
 
 source("../code/plot_PGS_decay.R")
-plot_PGS_decay(data_output[data_output$PC_dist<1000,],
-               col_dist = "PC_dist")
+plot_PGS_decay(data_output,
+               col_dist = "PC_dist",
+               dist_limits = c(0,1000),
+               col_pheno = "BMI",
+               col_PGS = "BMI_PGS")
 
 
 
@@ -71,10 +74,11 @@ data_output <- locPGSacc.FAST(data,
                          R = R,
                          k = k,
                          mode="hybrid",
-                         coverage=10,
+                         coverage=0.98,
+                         multiplier = 3,
                          verbose = TRUE
 )
 
 ggplot(data_output, aes(x=pc1, y=pc2)) +
-  geom_point(alpha=0.1) +
+  geom_point(alpha=0.01) +
   geom_point(data=data_output[!is.na(data_output$locPGSacc),], color="red")
