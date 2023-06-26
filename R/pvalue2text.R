@@ -13,7 +13,7 @@
 pvalue2text <- function(p_value, round_digits=3, alpha=0.05) {
   # extends shown digits in cases where rounded p == 0.05
   p_text <- round(p_value,round_digits)
-  while (p_text==alpha | !exists("p_text") | p_value != alpha) {
+  while ((p_text==alpha | !exists("p_text")) & p_value != alpha) {
     p_text <- round(p_value,round_digits)
     round_digits <- round_digits + 1
   }

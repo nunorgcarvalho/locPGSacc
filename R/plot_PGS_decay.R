@@ -74,8 +74,9 @@ plot_PGS_decay <- function(
         # computes r in each group in different ways
         if (r_group_mode == "r") {
           # calculates cor(phenotype, PGS) for all of that group's samples
-          r_group <- cor(data_plot[which(data_plot[col_group]==group & !is.na(data_plot[col_pheno])),][[col_pheno]],
-                          data_plot[which(data_plot[col_group]==group & !is.na(data_plot[col_PGS])),][[col_PGS]])
+          data_plot_group <- data_plot[which(data_plot[[col_group]]==group & !is.na(data_plot[[col_pheno]])),]
+          r_group <- cor(data_plot_group[[col_pheno]],
+                         data_plot_group[[col_PGS]])
         } else if (r_group_mode == "mean") {
           # calculates mean PGS accuracy for that group's anchor points 
           r_group <- mean(data_plot[data_plot[[col_group]]==group,][[col_PGSacc]], na.rm = TRUE)
@@ -102,7 +103,7 @@ plot_PGS_decay <- function(
   lm1 <- lm(locPGSacc ~ dist, data = data_plot)
   r <- round(cor1$estimate,3)
   pval_text <- pvalue2text(cor1$p.value)
-  slope <- pvalue_to_text(lm1$coefficients[[2]])
+  slope <- pvalue2text(lm1$coefficients[[2]])
   
   # extracts x and y scale from plot so far
   xrange <- layer_scales(gg)$x$range$range
