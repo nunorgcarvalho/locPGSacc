@@ -1,5 +1,11 @@
-# small helper function that takes an NN_ids object and adds element i to the
-# i'th list in the object. Returns NN_ids object.
+#' @title add_self2neighborhood
+#' @description Takes an NN_ids object from [locPGSacc()] and adds element i to the i'th NN vector
+#' @inherit locPGSacc author
+#' 
+#' @param NN_ids NN_ids object from locPGSacc()
+#' @param i_skip (optional) integer vector: list of indices to skip when adding element i to its own NN vector
+#' 
+#' @returns Returns inputted NN_ids object but with element i added to the i'th NN vector
 
 add_self2neighborhood <- function(NN_ids, i_skip=c()) {
   # skips denoted list

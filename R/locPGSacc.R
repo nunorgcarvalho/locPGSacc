@@ -1,8 +1,42 @@
-# returns inputted data table with 'n_neighbors' and 'locPGSacc' columns
-
-library(tidyverse)
-library(dbscan)
-source("R/add_self2neighborhood.R")
+#' @title locPGSacc
+#' @description Computes local PGS accuracy for all points in inputed data set
+#' @author Nuno R. G. Carvalho: \email{nunocarvalho@@gatech.edu}
+#' 
+#' @details This function takes a dataset containing columns for a phenotype,
+#' a PGS for the phenotype, and coordinates for some dimensional-space (e.g.
+#' genetic principal component space) and computes the correlation between the 
+#' phenotype and PGS within a 'neighborhood' centered at each point. This is called
+#' local PGS accuracy. A point's neighborhood can be defined in different ways,
+#' but broadly consists of points close to the original point chosen. This
+#' function returns the inputted data set with the local PGS accuracy and number
+#' of neighbors of each point appended as columns. For large sample sizes 
+#' (N > 20,000), it is recommended to use [locPGSacc.FAST()] instead
+#' 
+#' @param data data table containing all necessary columns and rows
+#' @param col_dims character vector: name of the dimension column(s)
+#' @param col_pheno character: column name of the phenotype of interest
+#' @param col_PGS character: column name of the polygenic scores for the phenotype of interest
+#' @param R numeric: radius from each point to build a neighborhood from. Only needed if using 'fr' or 'hybrid' mode
+#' @param k integer: number of closest neighbors (including self) to build neighborhood from. Only needed if using 'k' or 'hybrid' mode
+#' @param mode character: mode of building neighborhoods. One of:
+#' \itemize{
+#'   \item 'fr' = fixed-radius mode. Each anchor's neighborhood is composed of every point within a radius R of the anchor point.
+#'   \item 'k' = k-nearest mode. Each anchor's neighborhood is composed of the closest k points to the anchor point.
+#'   \item 'hybrid' = fr+k mode. Runs fixed-radius mode and then runs k-nearest mode on neighborhoods with sizes less than k. Recommended for reducing noise.
+#' }
+#' @param force_large_N logical: whether to continue with function if data's sample size is large (N>20,000). It is recommended to use [locPGSacc.FAST()] in such situations.
+#' 
+#' @return Returns inputted 'data' table but with the following columns appended:
+#' \itemize{
+#'  \item 'n_neighbors' = number of neighbors (including self) for that point's neighborhood
+#'  \item 'locPGSacc' = correlation between 'col_pheno' and 'col_PGS' columns within that point's neighborhood
+#' } 
+#' 
+#'
+#' @export
+#' 
+#' @import tidyverse
+#' @import dbscan
 
 locPGSacc <- function (
     data,
@@ -12,7 +46,7 @@ locPGSacc <- function (
     R = -1,
     k = -1,
     mode = "hybrid", # fr=fixed-radius, k=k closest neighbors, hybrid=highest n_neighbors of fr and k
-    force_largeN = FALSE
+    force_large_N = FALSE
 ) {
   
   # Checks if correct parameter was supplied

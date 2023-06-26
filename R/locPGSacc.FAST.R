@@ -1,37 +1,22 @@
 #' @title locPGSacc.FAST
-#' @description Fast version of locPGSacc() function for large N datasets
-#' @author Nuno R. G. Carvalho: \email{nunocarvalho@@gatech.edu}
+#' @description Fast version of [locPGSacc()] function for large N datasets
+#' @inherit locPGSacc author
 #' 
-#' @details For large sample sizes (N>20,000), the full locPGSacc() function may
-#' take too long to run and require too much memory. This function solves this
+#' @details For large sample sizes (N>20,000), the full [locPGSacc()] function
+#' may take too long to run and require too much memory. This function solves this
 #' issue by only building neighborhoods for much smaller amount of points called
 #' anchors. This function runs an algorithm to select the optimal set of anchors
 #' to build neighborhoods for such that it is representative of the entire
-#' dimensional space of the data set.
+#' dimensional space of the data set. Right now only works with quantitative
+#' traits.
 #' 
-#' @param data Data table containing all necessary columns and rows
-#' @param col_dims Vector of strings containing the name of the dimension columns
-#' @param col_pheno String of the column name of the phenotype of interest
-#' @param col_PGS String of the column name of the polygenic scores for the phenotype of interest
-#' @param R Number denoting the radius from each point to build a neighborhood from. Only needed if using 'fr' or 'hybrid' mode
-#' @param k Number denoting the number of closest neighbors (including self) to build neighborhood from. Only needed if using 'k' or 'hybrid' mode
-#' @param mode Mode of building neighborhoods. One of:
-#' \itemize{
-#'   \item 'fr' = fixed-radius mode. Each anchor's neighborhood is composed of every point within a radius R of the anchor point.
-#'   \item 'k' = k-nearest mode. Each anchor's neighborhood is composed of the closest k points to the anchor point.
-#'   \item 'hybrid' = fr+k mode. Runs fixed-radius mode and then runs k-nearest mode on neighborhoods with sizes less than k. Recommended for reducing noise.
-#' }
-#' @param multiplier Integer of times each point needs to be assigned to a neighborhood before algorithm ends. Bigger = slower = more anchors.
-#' @param coverage Number denoting proportion of points that need to meet the multiplier parameter before algorithm ends. Bigger = slower = more anchors
-#' @param seed Seed used for algorithm
-#' @param verbose Logical denoting whether to print out more detailed algorithm-related information
+#' @inheritParams locPGSacc
+#' @param multiplier integer: number of times each point needs to be assigned to a neighborhood before algorithm ends. Bigger = slower = more anchors.
+#' @param coverage numeric: proportion of points that need to meet the multiplier parameter before algorithm ends. Bigger = slower = more anchors
+#' @param seed numeric: seed used for algorithm
+#' @param verbose logical: whether to print out more detailed algorithm-related information
 #' 
-#' @returns Returns inputted 'data' table but with the following columns appended:
-#' \itemize{
-#'  \item 'n_neighbors' = number of neighbors (including self) for that point's neighborhood
-#'  \item 'locPGSacc' = correlation between 'col_pheno' and 'col_PGS' columns within that point's neighborhood
-#' } 
-#' 
+#' @inherit locPGSacc return
 #'
 #' @export
 #' 
