@@ -61,10 +61,15 @@ locPGSacc <- function (
     cols_duplicated <- cols_needed[cols_needed %in% colnames(data)]
     warning(paste0(c("Data table already contains at least one column used for output purposes:", cols_duplicated), collapse=" "))
   }
+  # separates samples with missing phenotype or PGS data
+  i_NA <- which(is.na(data[[col_pheno]]) | is.na(data[[col_PGS]]))
+  data_NA <- data[i_NA,] %>% select(-any_of(cols_needed))
+  data <- data[-i_NA,]
+  if (nrow(data_NA) > 0 ) {warning(paste0(nrow(data_NA), " sample(s) have missing PGS or phenotype data and won't be considered in algorithm."))}
   
   data_dims <- data %>% select(any_of(col_dims))
   n_samples <- nrow(data_dims)
-  if (n_samples > 20000 & !force_largeN) {
+  if (n_samples > 20000 & !force_large_N) {
     stop("N is (probably) too big for this algorithm. Use locPGSacc.FAST() instead,
          or set 'force_largeN'to TRUE if you are sure you want to proceed")
     }
@@ -103,11 +108,16 @@ locPGSacc <- function (
   print("Computing correlation within each neighborhood")
   r_values <- c()
   for (i in 1:nrow(data)) {
-    r <- cor(data[ NN_ids[[i]], ][[ col_pheno ]],
-             data[ NN_ids[[i]], ][[ col_PGS ]])
+    # once again checks for missing NA values, but should already be covered earlier
+    data_cor <- data[ NN_ids[[i]], c(col_pheno, col_PGS)] %>% drop_na()
+    r <- cor(data_cor[[ col_pheno ]],
+             data_cor[[ col_PGS ]])
     r_values[i] <- r
   }
   data$locPGSacc <- r_values
+  
+  # reappends missing data rows at the end
+  if (nrow(data_NA)>0) {data <- data %>% add_row(data_NA, n_neighbors=NA, locPGSacc=NA)}
   
   return(data)
 }

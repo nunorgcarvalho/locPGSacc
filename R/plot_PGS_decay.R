@@ -36,6 +36,8 @@ plot_PGS_decay <- function(
     col_PGS = NA, #optional
     r_group_mode = "r" # 'mean' or 'r'
 ) {
+  data_full <- data
+  data <- data[!is.na(data[[col_PGSacc]]),]
   # checks if columns are in data table
   if (!col_PGSacc %in% colnames(data)) {stop(paste0("'",col_PGSacc,"' column not in data table. Use locPGSacc() or locPGSacc.FAST() functions"))}
   if (!col_dist %in% colnames(data)) {stop(paste0("'",col_dist,"' column not in data table. Use dim_dist() function."))}
@@ -94,7 +96,10 @@ plot_PGS_decay <- function(
   
   # if columns for phenotype and PGS were given, computes cor(phenotype, PGS) for entire sample
   if (!is.na(col_pheno) & !is.na(col_PGS)) {
-    r_global <- cor(data_plot[[col_pheno]], data_plot[[col_PGS]])
+    data_cor <- data_full[which(data_full[[col_dist]] >= min(dist_limits),
+                                data_full[[col_dist]] <= max(dist_limits)),
+                          c(col_pheno, col_PGS)] %>% drop_na()
+    r_global <- cor(data_cor[[col_pheno]], data_cor[[col_PGS]])
     gg <- gg + geom_hline(yintercept = r_global, color="grey")
   }
   

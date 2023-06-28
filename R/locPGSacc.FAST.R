@@ -53,7 +53,7 @@ locPGSacc.FAST <- function (
   }
   # separates samples with missing phenotype or PGS data
   i_NA <- which(is.na(data[[col_pheno]]) | is.na(data[[col_PGS]]))
-  data_NA <- data[i_NA,]
+  data_NA <- data[i_NA,] %>% select(-any_of(cols_needed))
   data <- data[-i_NA,]
   if (nrow(data_NA) > 0 ) {warning(paste0(nrow(data_NA), " sample(s) have missing PGS or phenotype data and won't be considered in algorithm."))}
   
