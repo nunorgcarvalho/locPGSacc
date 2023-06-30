@@ -9,6 +9,7 @@ locPGSacc.FAST(
   col_dims,
   col_pheno,
   col_PGS,
+  col_PGSacc = "locPGSacc",
   R = -1,
   k = -1,
   mode = "hybrid",
@@ -26,6 +27,8 @@ locPGSacc.FAST(
 \item{col_pheno}{character: column name of the phenotype of interest}
 
 \item{col_PGS}{character: column name of the polygenic scores for the phenotype of interest}
+
+\item{col_PGSacc}{character: column name of the outputted local PGS accuracy}
 
 \item{R}{numeric: radius from each point to build a neighborhood from. Only needed if using 'fr' or 'hybrid' mode}
 

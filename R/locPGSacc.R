@@ -16,6 +16,7 @@
 #' @param col_dims character vector: name of the dimension column(s)
 #' @param col_pheno character: column name of the phenotype of interest
 #' @param col_PGS character: column name of the polygenic scores for the phenotype of interest
+#' @param col_PGSacc character: column name of the outputted local PGS accuracy
 #' @param R numeric: radius from each point to build a neighborhood from. Only needed if using 'fr' or 'hybrid' mode
 #' @param k integer: number of closest neighbors (including self) to build neighborhood from. Only needed if using 'k' or 'hybrid' mode
 #' @param mode character: mode of building neighborhoods. One of:
@@ -43,6 +44,7 @@ locPGSacc <- function (
     col_dims,
     col_pheno,
     col_PGS,
+    col_PGSacc = "locPGSacc",
     R = -1,
     k = -1,
     mode = "hybrid", # fr=fixed-radius, k=k closest neighbors, hybrid=highest n_neighbors of fr and k
@@ -56,7 +58,7 @@ locPGSacc <- function (
   # Checks if col_dims are in data table
   if ( !all(col_dims %in% colnames(data))) {stop("Data table does not contain all specified col_dims")}
   # Checks if data table already contains an output column
-  cols_needed <- c("n_neighbors","locPGSacc")
+  cols_needed <- c("n_neighbors",col_PGSacc)
   if ( any(cols_needed %in% colnames(data)) ) {
     cols_duplicated <- cols_needed[cols_needed %in% colnames(data)]
     warning(paste0(c("Data table already contains at least one column used for output purposes:", cols_duplicated), collapse=" "))
@@ -114,10 +116,10 @@ locPGSacc <- function (
              data_cor[[ col_PGS ]])
     r_values[i] <- r
   }
-  data$locPGSacc <- r_values
+  data[[col_PGSacc]] <- r_values
   
   # reappends missing data rows at the end
-  if (nrow(data_NA)>0) {data <- data %>% add_row(data_NA, n_neighbors=NA, locPGSacc=NA)}
+  if (nrow(data_NA)>0) {data <- data %>% add_row(data_NA)}
   
   return(data)
 }
