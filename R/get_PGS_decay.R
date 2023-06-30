@@ -1,0 +1,181 @@
+#' @title get_PGS_decay
+#' @description Returns statistics related to local PGS accuracy as a function of sample distance
+#' @inherit locPGSacc author
+#' 
+#' @details Takes a dataset with columns for local PGS accuracy (or any other
+#' desired metric) and sample distance (e.g. genetic PC distance) and returns the
+#' decay of PGS accuracy as a function of distance. Other optional arguments
+#' allow for plotting of PGS accuracy across entire sample and within groups
+#' (e.g. ancestries)
+#' 
+#' @param data data table containing all necessary columns and rows
+#' @param col_PGSacc character: column name of the local PGS accuracy
+#' @param col_dist character: column name of sample's distance in space
+#' @param dist_limits (optional) numeric vector: minimum and maximum x-axis limits for distance
+#' @param col_pheno (optional) character: column name of the phenotype of interest
+#' @param col_PGS (optional) character: column name of the polygenic scores for the phenotype of interest
+#' @param col_group (optional) character: column name of sample group assignments
+#' @param col_n_neighbors (optional) character: column name of points' number of neighbors
+#' @param return_objects (optional) logical: whether the function should return the outputs of cor.test() and lm() directly, rather than extracting the most important metrics
+#' @param window_prop (optional) numeric: proportion of 'col_dist' range that is used for computing standardized PGS decay slope (m_hat)
+#' 
+#' @export
+#' 
+#' @import tidyverse
+
+get_PGS_decay <- function(
+    data,
+    col_PGSacc = "locPGSacc",
+    col_dist = "dim_dist",
+    dist_limits = NA, # optional
+    col_pheno = NA, #optional
+    col_PGS = NA, #optional
+    col_group = NA, # optional
+    col_n_neighbors = NA,
+    return_objects = FALSE,
+    window_prop = 0.95 # central proportion of dim_dist range considered for standardizing m
+) {
+  # checks if column names exist ####
+  cols <- c(col_PGSacc, col_dist, col_group, col_pheno, col_PGS, col_n_neighbors)
+  cols <- cols[!is.na(cols)]
+  if (!all(cols %in% colnames(data))) {stop("At least one column not found in inputted data")}
+  
+  # output list is established ####
+  output <- list(
+    cor = list(
+      r = as.numeric(NA),
+      p = as.numeric(NA),
+      CI95 = as.numeric(NA)
+    ),
+    lm = list(
+      intercept = as.numeric(NA),
+      m = as.numeric(NA),
+      p = as.numeric(NA)
+    ),
+    accuracy = list(
+      global = list(
+        r = as.numeric(NA),
+        p = as.numeric(NA) 
+      ),
+      group = tibble(group = as.character(),
+                     N = as.numeric(),
+                     N_anchors = as.numeric(),
+                     mean_neighbors = as.numeric(),
+                     dist_mean = as.numeric(),
+                     dist_sd = as.numeric(),
+                     r = as.numeric(),
+                     p = as.numeric(),
+                     r_rel = as.numeric(),
+                     mean_anchor_acc = as.numeric())
+    )
+  )
+  # renames known columns for data set ####
+  data <- data  %>% rename(locPGSacc = !!sym(col_PGSacc),
+                           dim_dist = !!sym(col_dist)   )
+  if (!is.na(col_pheno) & !is.na(col_PGS)) {
+    data <- data %>% rename(pheno = !!sym(col_pheno),
+                            PGS = !!sym(col_PGS)    )
+  }
+  if (!is.na(col_group)) {
+    data <- data %>% rename(group = !!sym(col_group) )
+  }
+  if (!is.na(col_n_neighbors)) {
+    data <- data %>% rename(n_neighbors = !!sym(col_n_neighbors) )
+  }
+  
+  # filtering dataset ####  
+  # gets dataset for just the anchors
+  data_anchors <- data %>% filter(!is.na(locPGSacc), !is.na(dim_dist))
+  # gets dist_limits and imposes them
+  if (any(is.na(dist_limits))) {dist_limits <- range(data_anchors$dim_dist)}
+  data_anchors <- data_anchors %>% filter(between(dim_dist, dist_limits[1], dist_limits[2]))
+  
+  # correlation ####
+  # computes correlation statistics for locPGSacc ~ dim_dist
+  cor1 <- cor.test(data_anchors$locPGSacc,
+                   data_anchors$dim_dist  )
+  if (!return_objects) {
+    output$cor$r <- cor1$estimate
+    output$cor$p <- cor1$p.value
+    output$cor$CI95 <- cor1$conf.int[1:2]
+  } else {output$cor <- cor1}
+  
+  # linear regression ####
+  # computes linear regression statistics for locPGSacc ~ dim_dist
+  lm1 <- lm(locPGSacc ~ dim_dist, data = data_anchors)
+  m <- lm1$coefficients[[2]]
+  if (!return_objects) {
+    output$lm$intercept<- lm1$coefficients[[1]]
+    output$lm$m <- m
+    output$lm$p <- summary(lm1)$coefficients[2,4]
+  } else {output$lm <- lm1}
+  ## gets standardized m ####
+  range2 <- window_prop * diff(dist_limits)
+  dist_limits2 <- c(mean(dist_limits) - range2/2,
+                    mean(dist_limits) + range2/2)
+  # uses actual cor(PGS, pheno) for standard ref if given
+  if (!is.na(col_pheno) & !is.na(col_PGS)) {
+    data_ref <- data %>% filter(dim_dist < dist_limits2[1],
+                                !is.na(pheno), !is.na(PGS))
+    r_ref <- cor(data_ref$pheno, data_ref$PGS)
+  } else {
+    data_anchors_ref <- data_anchors %>% filter(dim_dist < dist_limits2[1])
+    r_ref <- mean(data_anchors_ref$locPGSacc)
+  }
+  
+  m_hat <- m / (window_prop * r_ref)
+  output$lm$m_hat <- m_hat
+  
+  # accuracy ####
+  # checks if user provided column name for phenotype and for PGS
+  if (!is.na(col_pheno) & !is.na(col_PGS)) {
+    ## global ####
+    # computes global correlation between phenotype and PGS
+    data_cor <- data %>% filter(!is.na(pheno), !is.na(PGS))
+    cor2 <- cor.test(data_cor$pheno, data_cor$PGS)
+    if (!return_objects) {
+      output$accuracy$global$r <- cor2$estimate
+      output$accuracy$global$p <- cor2$p.value
+    } else {output$accuracy$global <- cor2}
+    
+    # groups ####
+    if (!is.na(col_group)) {
+      # extracts groups and removes NA's
+      groups <- data_cor$group %>% unique()
+      groups <- groups[!is.na(groups)]
+      for (group. in groups) {
+        # computes correlation between phenotype and PGS for specific group
+        data_group <- data_cor %>% filter(group == group.)
+        cor3 <- cor.test(data_group$pheno, data_group$PGS)
+        
+        data_anchors_group <- data_anchors %>% filter(group == group.)
+        #if (nrow(data_anchors_group)==0) {mean_anchor_acc <- NA
+        #} else {mean_anchor_acc <- mean(data_anchors_group$locPGSacc)}
+        if (is.na(col_n_neighbors)) {mean_neighbors <- NA
+        } else {mean_neighbors <- mean(data_anchors_group$n_neighbors)}
+        
+        # adds to table
+        output$accuracy$group <- output$accuracy$group %>%
+          add_row(
+            group = group.,
+            N = nrow(data_group),
+            N_anchors = nrow(data_anchors_group),
+            mean_neighbors = mean_neighbors,
+            dist_mean = mean(data_group$dim_dist),
+            dist_sd = sd(data_group$dim_dist),
+            r = cor3$estimate,
+            p = cor3$p.value,
+            r_rel = cor3$estimate / r_ref,
+            mean_anchor_acc = mean(data_anchors_group$locPGSacc)
+          )
+      }
+      # sorts groups by dist_mean
+      output$accuracy$group <- output$accuracy$group %>%
+        arrange(dist_mean)
+    }
+    
+  } else {output$accuracy <- NULL} # removes accuracy output if columns not present
+  
+  # returns output ####
+  return(output)
+}
