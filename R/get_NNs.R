@@ -47,15 +47,15 @@ get_NNs <- function(
   # Checks if col_dims are in data table
   if ( !all(col_dims %in% colnames(data))) {stop("Data table does not contain all specified col_dims")}
   
-  
   # adds samples with NA data to list of indices to omit
   i_NA <- (1:nrow(data))[rowSums(is.na(data[,col_dims]))>0]
-  if (length(i_NA) > 0 ) {warning(paste0(length(i_NA), " sample(s) have missing PGS or phenotype data and won't be considered in algorithm."))}
+  if (length(i_NA) > 0 ) {warning(paste0(length(i_NA), " sample(s) have missing dimensional data and won't be considered in algorithm."))}
   i_omit <- c(i_omit,i_NA) %>% unique() %>% sort()
+  if (length(i_omit) == 0) {i_keep <- 1:nrow(data)
+  } else {i_keep <- (1:nrow(data))[-i_omit]}
   
   # makes data table with just col_dims and no missing data
-  if (length(i_omit) == 0 ) { data_dims <- data %>% select(all_of(col_dims))
-  } else { data_dims <- data[-i_omit,] %>% select(all_of(col_dims)) }
+  data_dims <- data[i_keep,] %>% select(all_of(col_dims))
   
   n_samples <- nrow(data_dims)
   # stops if N is large and user didn't force slow algorithm
@@ -74,31 +74,31 @@ get_NNs <- function(
   if (mode=="fr") {
     # Fixed-radius mode
     NNfr <- dbscan::frNN(data_dims, eps=R, sort=FALSE)
-    NN_ids_noNA <- NNfr$id %>% add_self2neighborhood()
+    NN_ids_keep <- NNfr$id %>% add_self2neighborhood()
   } else if (mode=="k") {
     # k-nearest mode
     NNk <- dbscan::kNN(data_dims, k=k-1, sort=FALSE)
-    NN_ids_noNA <- split(NNk$id,seq_len(nrow(NNk$id))) %>% add_self2neighborhood()
+    NN_ids_keep <- split(NNk$id,seq_len(nrow(NNk$id))) %>% add_self2neighborhood()
   } else if (mode=="hybrid") {
     # hybrid fr+k mode
     # computes NN with fixed-radius
     NNfr <- dbscan::frNN(data_dims, eps=R, sort=FALSE)
-    NN_ids_noNA <- NNfr$id
+    NN_ids_keep <- NNfr$id
     # computes NN with k-nearest for points with <k fixed-radius neighbors
     small_neighborhoods <- (1:nrow(data_dims))[sapply(NNfr$id, length) < k]
     if (length(small_neighborhoods > 0)) {
       NNk <- dbscan::kNN(data_dims, k=k, sort=FALSE, query=data_dims[small_neighborhoods,])
-      NN_ids_noNA[small_neighborhoods] <- split(NNk$id,seq_len(nrow(NNk$id)))
+      NN_ids_keep[small_neighborhoods] <- split(NNk$id,seq_len(nrow(NNk$id)))
     }
-    NN_ids_noNA <- add_self2neighborhood(NN_ids_noNA)
+    NN_ids_keep <- add_self2neighborhood(NN_ids_keep)
   }
   
-  # makes NN_ids list of full data size (with NULL values for i_omit)
-  if (length(i_omit) == 0 ) {NN_ids <- NN_ids_noNA
-  } else {
-    NN_ids <- vector("list", nrow(data))
-    NN_ids[-i_omit] <- NN_ids_noNA
-  }
+  # maps post-omit indices back to pre-omit indices
+  NN_ids_keep <- sapply(NN_ids_keep, function(x) i_keep[x])
+  
+  # makes NN_ids for all samples in full data, setting omitted samples to NULL
+  NN_ids <- vector("list", nrow(data))
+  NN_ids[i_keep] <- NN_ids_keep
   
   # returns NN_ids2
   return(NN_ids)

@@ -16,6 +16,7 @@
 #' @param col_pheno character: column name of the phenotype of interest
 #' @param col_PGS character: column name of the polygenic scores for the phenotype of interest
 #' @param col_PGSacc character: column name of the outputted local PGS accuracy
+#' @param NN_ids (optional) nested list outputted from [get_NNs()]; allows for reuse of neighborhoods
 #' 
 #' @return Returns inputted 'data' table but with the following columns appended:
 #' \itemize{
@@ -38,6 +39,7 @@ locPGSacc <- function (
     R = -1,
     k = -1,
     mode = "hybrid", # fr=fixed-radius, k=k closest neighbors, hybrid=highest n_neighbors of fr and k
+    NN_ids = list(),
     force_large_N = FALSE
 ) {
   # Checks if data table already contains an output column
@@ -47,69 +49,25 @@ locPGSacc <- function (
     warning(paste0(c("Data table already contains at least one column used for output purposes:", cols_duplicated), collapse=" "))
   }
   
-  # uses get_NNs to retrieve nearest neighbors
-  NN_ids <- get_NNs(
-    data,
-    col_dims=col_dims,
-    R = R,
-    k = k,
-    mode = mode,
-    i_omit = c(),
-    force_large_N = force_large_N
-  )
+  if (length(NN_ids) == 0) {
+    # gets indices of samples with missing phenotype of PGS data
+    i_omit <- (1:nrow(data))[is.na(data[[col_pheno]]) | is.na(data[[col_PGS]])]
+    
+    # uses get_NNs to retrieve nearest neighbors
+    NN_ids <- get_NNs(
+      data,
+      col_dims=col_dims,
+      R = R,
+      k = k,
+      mode = mode,
+      i_omit = i_omit,
+      force_large_N = force_large_N
+    )
+  } else {
+    # throws error if inputted NN_ids does not match data
+    if (length(NN_ids) != nrow(data)) {stop("Length of NN_ids does not match number of rows in data")}
+  }
   data$n_neighbors <- sapply(NN_ids, length)
-  # adds lis
-  
-  # # Checks if correct parameter was supplied
-  # if (mode != "k" & R==-1) {stop("R must be supplied")}
-  # if (mode != "fr" & k==-1) {stop("k must be supplied")}
-  # 
-  # # Checks if col_dims are in data table
-  # if ( !all(col_dims %in% colnames(data))) {stop("Data table does not contain all specified col_dims")}
-  
-  
-  # separates samples with missing phenotype or PGS data
-  # i_NA <- which(is.na(data[[col_pheno]]) | is.na(data[[col_PGS]]))
-  # data_NA <- data[i_NA,] %>% select(-any_of(cols_needed))
-  # data <- data[-i_NA,]
-  # if (nrow(data_NA) > 0 ) {warning(paste0(nrow(data_NA), " sample(s) have missing PGS or phenotype data and won't be considered in algorithm."))}
-  
-  # data_dims <- data %>% select(any_of(col_dims))
-  # n_samples <- nrow(data_dims)
-  # if (n_samples > 20000 & !force_large_N) {
-  #   stop("N is (probably) too big for this algorithm. Use locPGSacc.FAST() instead,
-  #        or set 'force_largeN'to TRUE if you are sure you want to proceed")
-  #   }
-  # if (k >= n_samples) {warning("k=",k," is bigger than number of samples")}
-  
-  # print(paste0("Computing nearest neighbors for ",n_samples," samples using ",mode,
-  #              "-mode with the settings",
-  #              ifelse(mode!="k",paste(" R =",R),""),
-  #              ifelse(mode!="fr",paste(" k =",k),"")))
-  # if (mode=="fr") {
-  #   # Fixed-radius mode
-  #   NNfr <- dbscan::frNN(data_dims, eps=R, sort=FALSE)
-  #   NN_ids <- NNfr$id %>% add_self2neighborhood()
-  #   data$n_neighbors <- sapply(NN_ids, length)
-  # } else if (mode=="k") {
-  #   # k-nearest mode
-  #   NNk <- dbscan::kNN(data_dims, k=k-1, sort=FALSE)
-  #   NN_ids <- split(NNk$id,seq_len(nrow(NNk$id))) %>% add_self2neighborhood()
-  #   data$n_neighbors <- k
-  # } else if (mode=="hybrid") {
-  #   # hybrid fr+k mode
-  #   # computes NN with fixed-radius
-  #   NNfr <- dbscan::frNN(data_dims, eps=R, sort=FALSE)
-  #   NN_ids <- NNfr$id
-  #   # computes NN with k-nearest for points with <k fixed-radius neighbors
-  #   small_neighborhoods <- (1:nrow(data))[sapply(NNfr$id, length) < k]
-  #   if (length(small_neighborhoods > 0)) {
-  #     NNk <- dbscan::kNN(data_dims, k=k, sort=FALSE, query=data_dims[small_neighborhoods,])
-  #     NN_ids[small_neighborhoods] <- split(NNk$id,seq_len(nrow(NNk$id)))
-  #   }
-  #   NN_ids <- add_self2neighborhood(NN_ids)
-  #   data$n_neighbors <- sapply(NN_ids, length)
-  # }
   
   # computes correlation between phenotype and PGS for phenotype
   print("Computing correlation within each neighborhood")
