@@ -1,12 +1,12 @@
 #' @title plot_PGS_decay
-#' @description Returns plot of local PGS accuracy as a function of sample distance
+#' @description Plots local PGS accuracy as a function of sample distance
 #' @inherit locPGSacc author
 #' 
 #' @details Takes a dataset with columns for local PGS accuracy (or any other
 #' desired metric) and sample distance (e.g. genetic PC distance) and plots the
 #' decay of PGS accuracy as a function of distance. Other optional arguments
 #' allow for plotting of PGS accuracy across entire sample and within groups
-#' (e.g. ancestries)
+#' (e.g. ancestries). Annotated statistics are computed from [get_PGS_decay()].
 #' 
 #' @inheritParams get_PGS_decay
 #' 
@@ -62,8 +62,6 @@ plot_PGS_decay <- function(
     ggb <- ggplot_build(gg1)
     group_colors <- ggb$data[[1]]$colour %>% unique()
     groups <- data_plot[[col_group]] %>% unique()
-    #groups <- groups[!is.na(groups)]
-    
     # throws error if columns for the phenotype and PGS were not given
     if (is.na(col_pheno) | is.na(col_PGS)) {stop("'col_group' was given but 'col_pheno' and 'col_PGS' were not")}
     
@@ -77,30 +75,6 @@ plot_PGS_decay <- function(
       # adds horizontal lines corresponding to r in each group
       gg <- gg + geom_hline(yintercept = mean_anchor_acc, color=group_color)
     }
-    # # throws error if columns for the phenotype and PGS were not given
-    # if (!is.na(col_pheno) & !is.na(col_PGS)) {
-    #   # loops through each group in dataset
-    #   for (i in 1:length(groups)) {
-    #     group <- groups[i]
-    #     group_color <- group_colors[i]
-    #     # skips if group is NA
-    #     if (is.na(group)) {next}
-    #     # computes r in each group in different ways
-    #     if (r_group_mode == "r") {
-    #       # calculates cor(phenotype, PGS) for all of that group's samples
-    #       data_plot_group <- data_plot[which(data_plot[[col_group]]==group & !is.na(data_plot[[col_pheno]])),]
-    #       r_group <- cor(data_plot_group[[col_pheno]],
-    #                      data_plot_group[[col_PGS]])
-    #     } else if (r_group_mode == "mean") {
-    #       # calculates mean PGS accuracy for that group's anchor points 
-    #       r_group <- mean(data_plot[data_plot[[col_group]]==group,][[col_PGSacc]], na.rm = TRUE)
-    #     } else {stop("'r_group_mode' must be one of 'r' or 'mean'")}
-    #     # adds horizontal lines corresponding to r in each group
-    #     gg <- gg + geom_hline(yintercept = r_group, color=group_color)
-    #   }
-    # } else {stop("'col_group' was given but 'col_pheno' and 'col_PGS' were not")}
-    
-    
     # adds points of samples, colored by their group
     gg <- gg + geom_point(alpha = alpha, aes(color = !!sym(col_group)))
   } else {

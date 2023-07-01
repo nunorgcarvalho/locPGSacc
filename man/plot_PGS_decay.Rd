@@ -30,14 +30,14 @@ plot_PGS_decay(
 \item{col_PGS}{(optional) character: column name of the polygenic scores for the phenotype of interest}
 }
 \description{
-Returns plot of local PGS accuracy as a function of sample distance
+Plots local PGS accuracy as a function of sample distance
 }
 \details{
 Takes a dataset with columns for local PGS accuracy (or any other
 desired metric) and sample distance (e.g. genetic PC distance) and plots the
 decay of PGS accuracy as a function of distance. Other optional arguments
 allow for plotting of PGS accuracy across entire sample and within groups
-(e.g. ancestries)
+(e.g. ancestries). Annotated statistics are computed from \code{\link[=get_PGS_decay]{get_PGS_decay()}}.
 }
 \author{
 Nuno R. G. Carvalho: \email{nunocarvalho@gatech.edu}

@@ -30,11 +30,11 @@ locPGSacc.FAST(
 
 \item{col_PGSacc}{character: column name of the outputted local PGS accuracy}
 
-\item{R}{numeric: radius from each point to build a neighborhood from. Only needed if using 'fr' or 'hybrid' mode}
+\item{R}{(optional for mode='k') numeric: radius from each point to build a neighborhood from. Only needed if using 'fr' or 'hybrid' mode}
 
-\item{k}{integer: number of closest neighbors (including self) to build neighborhood from. Only needed if using 'k' or 'hybrid' mode}
+\item{k}{(optional for mode='fr') integer: number of closest neighbors (including self) to build neighborhood from. Only needed if using 'k' or 'hybrid' mode}
 
-\item{mode}{character: mode of building neighborhoods. One of:
+\item{mode}{(optional) character: mode of building neighborhoods. One of:
 \itemize{
 \item 'fr' = fixed-radius mode. Each anchor's neighborhood is composed of every point within a radius R of the anchor point.
 \item 'k' = k-nearest mode. Each anchor's neighborhood is composed of the closest k points to the anchor point.
