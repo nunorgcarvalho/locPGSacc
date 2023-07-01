@@ -45,8 +45,17 @@ the i'th point's neighbors (including element i itself) if computed
 NN algorithm that builds all possible neighborhoods
 }
 \details{
-This NN algorithm builds a neighborhood for every point in the data
-set (with non-NA data)
+This NN algorithm builds a neighborhood for a sample of points
+representative of the dimensional space. The algorithm performs the following
+loop, starting with zero neighborhoods built:
+\enumerate{
+\item Randomly sample a point (called the anchor point) in the dataset that is currently part of less than 'multiplier' (default=1) number of neighborhoods
+\item Build neighborhood for the anchor point according to 'mode' parameter
+\item Update the running list of how many neighborhood each point is part of. Points in the neighborhood built in this iteration of their running count increased by 1.
+}
+The loop ends once the proportion of points in the dataset that are part of at
+least 'multiplier' number of neighborhoods is greater than or equal to
+'coverage' (default=1.00)
 }
 \author{
 Nuno R. G. Carvalho: \email{nunocarvalho@gatech.edu}

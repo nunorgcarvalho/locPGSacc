@@ -36,8 +36,8 @@ locPGSacc(
 
 \item{method}{character vector: method of sampling points to build neighborhoods for. One of:
 \itemize{
-\item 'FULL' = builds neighborhoods for every points in the dataset (with non-NA data)
-\item 'FAST' = builds neighborhoods for a much smaller but representative sample of the data's dimensional space. Algorithm can be tweaked further (see below)
+\item 'FULL' = builds neighborhoods for every points in the dataset (with non-NA data). See \code{\link[=get_NNs.FULL]{get_NNs.FULL()}} for more details.
+\item 'FAST' = builds neighborhoods for a much smaller but representative sample of the data's dimensional space. Algorithm can be tweaked further (see below). See \code{\link[=get_NNs.FAST]{get_NNs.FAST()}} for more details.
 }}
 
 \item{R}{(optional for mode='k') numeric: radius from each point to build a neighborhood from. Only needed if using 'fr' or 'hybrid' mode}
@@ -55,7 +55,7 @@ locPGSacc(
 
 \item{NN_ids}{(optional) nested list outputted from \code{\link[=get_NNs]{get_NNs()}}; allows for reuse of neighborhoods}
 
-\item{force_FULL}{(optional) logical: whether to continue with function if data's sample size is large (N>20,000). It is recommended to use \code{\link[=locPGSacc.FAST]{locPGSacc.FAST()}} in such situations.}
+\item{force_FULL}{(optional, method='FULL') logical: whether to continue with function if data's sample size is large (N>20,000). It is recommended to use \code{\link[=locPGSacc.FAST]{locPGSacc.FAST()}} in such situations.}
 
 \item{multiplier}{(optional, method='FAST') integer: number of times each point needs to be assigned to a neighborhood before algorithm ends. Bigger = slower = more anchors.}
 
@@ -83,8 +83,10 @@ phenotype and PGS within a 'neighborhood' centered at each point. This is called
 local PGS accuracy. A point's neighborhood can be defined in different ways,
 but broadly consists of points close to the original point chosen. This
 function returns the inputted data set with the local PGS accuracy and number
-of neighbors of each point appended as columns. For large sample sizes
-(N > 20,000), it is recommended to use \code{\link[=locPGSacc.FAST]{locPGSacc.FAST()}} instead
+of neighbors of each point appended as columns. For smaller sample sizes
+(N < 20,000), the method='FULL' algorithm is likely fine, but larger sample
+sizes become too slow and resource-intensive to deal with; use method='FAST'
+instead.
 }
 \author{
 Nuno R. G. Carvalho: \email{nunocarvalho@gatech.edu}

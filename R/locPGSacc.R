@@ -9,12 +9,13 @@
 #' local PGS accuracy. A point's neighborhood can be defined in different ways,
 #' but broadly consists of points close to the original point chosen. This
 #' function returns the inputted data set with the local PGS accuracy and number
-#' of neighbors of each point appended as columns. For large sample sizes 
-#' (N > 20,000), it is recommended to use [locPGSacc.FAST()] instead
+#' of neighbors of each point appended as columns. For smaller sample sizes
+#' (N < 20,000), the method='FULL' algorithm is likely fine, but larger sample
+#' sizes become too slow and resource-intensive to deal with; use method='FAST'
+#' instead.
 #' 
 #' @inheritParams get_NNs
-#' @param col_pheno character: column name of the phenotype of interest
-#' @param col_PGS character: column name of the polygenic scores for the phenotype of interest
+#' @inheritParams get_accuracy
 #' @param col_PGSacc character: column name of the outputted local PGS accuracy
 #' @param NN_ids (optional) nested list outputted from [get_NNs()]; allows for reuse of neighborhoods
 #' 
@@ -86,16 +87,56 @@ locPGSacc <- function (
   print("Computing correlation within each neighborhood")
   r_values <- c()
   for (i in 1:length(NN_ids)) {
+    NN_ids_i <- NN_ids[[i]]
     # skips if no NNs were computed
-    if (is.null(NN_ids[[i]])) {next}
+    if (is.null(NN_ids_i)) {next}
     # once again checks for missing NA values, but should already be covered earlier
-    data_cor <- data[ NN_ids[[i]], c(col_pheno, col_PGS)] %>% drop_na()
-    r <- cor(data_cor[[ col_pheno ]],
-             data_cor[[ col_PGS ]])
+    # data_cor <- data[ NN_ids_i, c(col_pheno, col_PGS)] %>% drop_na()
+    # r <- cor(data_cor[[ col_pheno ]],
+    #          data_cor[[ col_PGS ]])
+    r <- get_accuracy(data, NN_ids_i, col_pheno=col_pheno, col_PGS=col_PGS)
     r_values[i] <- r
   }
   data[[col_PGSacc]] <- r_values
   
   # returns full data set
   return(data)
+}
+
+
+
+
+# accuracy function ####
+
+
+#' @title get_accuracy
+#' @description Computes correlation between phenotype and PGS for given neighborhood
+#' @inherit locPGSacc author
+#' 
+#' @details This function takes a dataset containing columns for a phenotype and
+#' a PGS for the phenotype as well as a list of indices in the dataset (composing
+#' the "neighborhood") for which to compute the correlation between phenotype
+#' and PGS for.
+#' 
+#' @inheritParams locPGSacc
+#' @param NN_ids_i: numeric vector: indices in 'data' that are part of neighborhood to compute correlation within
+#' @param col_pheno character: column name of the phenotype of interest
+#' @param col_PGS character: column name of the polygenic scores for the phenotype of interest
+#' 
+#' @return Returns correlation value between phenotype and PGS within neighborhood
+#' 
+#' @import tidyverse
+get_accuracy <- function(
+    data,
+    NN_ids_i,
+    col_pheno,
+    col_PGS
+) {
+  # removes potential NA values (this should have already been taken care of)
+  data_cor <- data[ NN_ids_i, c(col_pheno, col_PGS)] %>% drop_na()
+  r <- cor(data_cor[[ col_pheno ]],
+           data_cor[[ col_PGS ]])
+  
+  # returns r
+  return(r)
 }

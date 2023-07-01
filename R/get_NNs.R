@@ -14,8 +14,8 @@
 #' @param col_dims character vector: name of the dimension column(s)
 #' @param method character vector: method of sampling points to build neighborhoods for. One of:
 #' \itemize{
-#'   \item 'FULL' = builds neighborhoods for every points in the dataset (with non-NA data)
-#'   \item 'FAST' = builds neighborhoods for a much smaller but representative sample of the data's dimensional space. Algorithm can be tweaked further (see below)
+#'   \item 'FULL' = builds neighborhoods for every points in the dataset (with non-NA data). See [get_NNs.FULL()] for more details.
+#'   \item 'FAST' = builds neighborhoods for a much smaller but representative sample of the data's dimensional space. Algorithm can be tweaked further (see below). See [get_NNs.FAST()] for more details.
 #' }
 #' @param R (optional for mode='k') numeric: radius from each point to build a neighborhood from. Only needed if using 'fr' or 'hybrid' mode
 #' @param k (optional for mode='fr') integer: number of closest neighbors (including self) to build neighborhood from. Only needed if using 'k' or 'hybrid' mode
@@ -162,8 +162,17 @@ get_NNs.FULL <- function(
 #' @description NN algorithm that builds all possible neighborhoods
 #' @inherit locPGSacc author
 #' 
-#' @details This NN algorithm builds a neighborhood for every point in the data
-#' set (with non-NA data)
+#' @details This NN algorithm builds a neighborhood for a sample of points 
+#' representative of the dimensional space. The algorithm performs the following
+#' loop, starting with zero neighborhoods built:
+#' \enumerate{
+#'   \item Randomly sample a point (called the anchor point) in the dataset that is currently part of less than 'multiplier' (default=1) number of neighborhoods
+#'   \item Build neighborhood for the anchor point according to 'mode' parameter
+#'   \item Update the running list of how many neighborhood each point is part of. Points in the neighborhood built in this iteration of their running count increased by 1.
+#' }
+#' The loop ends once the proportion of points in the dataset that are part of at
+#' least 'multiplier' number of neighborhoods is greater than or equal to
+#' 'coverage' (default=1.00)
 #' 
 #' @inheritParams get_NNs
 #' @param data_dims data table containing all necessary columns and rows. MUST HAVE NO NA VALUES

@@ -92,10 +92,12 @@ plot_PGS_decay <- function(
   r <- output$cor$r
   p <- output$cor$p
   pval_text <- pvalue2text(p)
+  m <- output$lm$m
+  m_text <- paste0(round(m*1000,3),"%*%10^-3")
   m_hat <- output$lm$m_hat
   m_hat_text <- paste0(round(m_hat*1000,3),"%*%10^-3")
   # pre-writes annotation of locPGS ~ dist using plotmath() parsing
-  annotation <- paste0("r==",round(r,3),"~~","~p==",pval_text,"~~","hat(m)==",m_hat_text)
+  annotation <- paste0("r==",round(r,3),"~~p==",pval_text,"~~hat(m)==",m_hat_text,"~~m==",m_text)
   
   # extracts x and y scale from plot so far
   xrange <- layer_scales(gg)$x$range$range
