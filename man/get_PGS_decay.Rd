@@ -8,11 +8,13 @@ get_PGS_decay(
   data,
   col_PGSacc = "locPGSacc",
   col_dist = "dim_dist",
-  col_group = NA,
   dist_limits = NA,
   col_pheno = NA,
   col_PGS = NA,
-  return_objects = FALSE
+  col_group = NA,
+  col_n_neighbors = NA,
+  return_objects = FALSE,
+  window_prop = 0.95
 )
 }
 \arguments{
@@ -22,15 +24,59 @@ get_PGS_decay(
 
 \item{col_dist}{character: column name of sample's distance in space}
 
-\item{col_group}{(optional) character: column name of sample group assignments}
-
 \item{dist_limits}{(optional) numeric vector: minimum and maximum x-axis limits for distance}
 
 \item{col_pheno}{(optional) character: column name of the phenotype of interest}
 
 \item{col_PGS}{(optional) character: column name of the polygenic scores for the phenotype of interest}
 
+\item{col_group}{(optional) character: column name of sample group assignments}
+
+\item{col_n_neighbors}{(optional) character: column name of points' number of neighbors}
+
 \item{return_objects}{(optional) logical: whether the function should return the outputs of cor.test() and lm() directly, rather than extracting the most important metrics}
+
+\item{window_prop}{(optional) numeric: proportion of 'col_dist' range that is used for computing standardized PGS decay slope (m_hat)}
+}
+\value{
+Returns a nested list with statistics related to PGS decay:
+\itemize{
+\item cor: computes correlation between locPGSacc & dim_dist
+\itemize{
+\item r = Pearson's correlation coefficient
+\item p = p-value
+\item CI95 = 95\% confidence interval
+}
+\item lm: computes a linear regression for locPGSacc ~ dim_dist
+\itemize{
+\item intercept = intercept of line of best fit
+\item m = slope of line of best fit
+\item p = p-value for slope
+\item m_hat = standardized slope; m divided by the cor(pheno, PGS) among
+reference population (individuals found within (1 - window_prop/2)
+(default = 2.5\%) of the maximum dim_dist in data); uses mean
+locPGSacc when columns not given
+}
+\item global: computes cor(pheno, PGS) on all samples
+\itemize{
+\item r = Pearson's correlation coefficient
+\item p = p-value
+}
+\item group: tibble containing series of statistics for each group (excluding NA) in dataset
+\itemize{
+\item group = name of group
+\item N = number of total individuals in group
+\item N_anchors = number of anchors for which locPGSacc was computed
+\item mean_neighbors = average number of neighbors among groups' anchors
+\item dist_mean = average dim_dist of all individuals in group
+\item dist_sd = standard deviation of dim_dist of all individuals in group
+\item r = correlation between phenotype and PGS for all individuals in group
+\item p = p-value of cor(pheno, PGS)
+\item r_rel = cor(pheno,PGS) of group divided by cor(pheno,PGS) among
+reference population (see above)
+\item mean_anchor_acc = average locPGSacc among groups' anchors
+}
+}
 }
 \description{
 Returns statistics related to local PGS accuracy as a function of sample distance

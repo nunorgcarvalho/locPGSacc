@@ -8,18 +8,7 @@
 #' allow for plotting of PGS accuracy across entire sample and within groups
 #' (e.g. ancestries)
 #' 
-#' @param data data table containing all necessary columns and rows
-#' @param col_PGSacc character: column name of the local PGS accuracy
-#' @param col_dist character: column name of sample's distance in space
-#' @param col_group (optional) character: column name of sample group assignments
-#' @param dist_limits (optional) numeric vector: minimum and maximum x-axis limits for distance
-#' @param col_pheno (optional) character: column name of the phenotype of interest
-#' @param col_PGS (optional) character: column name of the polygenic scores for the phenotype of interest
-#' @param r_group_mode (optional) character: mode for computing group PGS accuracy values
-#' \itemize{
-#'   \item 'r' = calculates cor(phenotype, PGS) for all of that group's samples
-#'   \item 'mean' = calculates mean PGS accuracy for that group's anchor points
-#' }
+#' @inheritParams get_PGS_decay
 #' 
 #' @export
 #' 
@@ -33,8 +22,7 @@ plot_PGS_decay <- function(
     col_group = NA, # optional
     dist_limits = NA, # optional
     col_pheno = NA, #optional
-    col_PGS = NA, #optional
-    r_group_mode = "r" # 'mean' or 'r'
+    col_PGS = NA #optional
 ) {
   data_full <- data
   data <- data[!is.na(data[[col_PGSacc]]),]
@@ -58,6 +46,15 @@ plot_PGS_decay <- function(
   gg <- ggplot(data_plot, aes(x = dist, y = locPGSacc)) +
     theme_light()
   
+  # gets decay statistics from get_PGS_decay()
+  output <- get_PGS_decay(data,
+                          col_PGSacc = col_PGSacc,
+                          col_dist = col_dist,
+                          dist_limits = dist_limits,
+                          col_pheno = col_pheno,
+                          col_PGS = col_PGS,
+                          col_group = col_group)
+  
   # adds horizontal lines denoting PGS accuracy within each defined group (if given)
   if (!is.na(col_group)) {
     # makes temporary ggplot for extracting resulting groups and group colors
@@ -65,28 +62,45 @@ plot_PGS_decay <- function(
     ggb <- ggplot_build(gg1)
     group_colors <- ggb$data[[1]]$colour %>% unique()
     groups <- data_plot[[col_group]] %>% unique()
+    #groups <- groups[!is.na(groups)]
+    
     # throws error if columns for the phenotype and PGS were not given
-    if (!is.na(col_pheno) & !is.na(col_PGS)) {
-      # loops through each group in dataset
-      for (i in 1:length(groups)) {
-        group <- groups[i]
-        group_color <- group_colors[i]
-        # skips if group is NA
-        if (is.na(group)) {next}
-        # computes r in each group in different ways
-        if (r_group_mode == "r") {
-          # calculates cor(phenotype, PGS) for all of that group's samples
-          data_plot_group <- data_plot[which(data_plot[[col_group]]==group & !is.na(data_plot[[col_pheno]])),]
-          r_group <- cor(data_plot_group[[col_pheno]],
-                         data_plot_group[[col_PGS]])
-        } else if (r_group_mode == "mean") {
-          # calculates mean PGS accuracy for that group's anchor points 
-          r_group <- mean(data_plot[data_plot[[col_group]]==group,][[col_PGSacc]], na.rm = TRUE)
-        } else {stop("'r_group_mode' must be one of 'r' or 'mean'")}
-        # adds horizontal lines corresponding to r in each group
-        gg <- gg + geom_hline(yintercept = r_group, color=group_color)
-      }
-    } else {stop("'col_group' was given but 'col_pheno' and 'col_PGS' were not")}
+    if (is.na(col_pheno) | is.na(col_PGS)) {stop("'col_group' was given but 'col_pheno' and 'col_PGS' were not")}
+    
+    for (i in 1:length(groups)) {
+      group. <- groups[i]
+      if (is.na(group.)) {next}
+      group_color <- group_colors[i]
+      # gets mean of locPGSacc among group's anchors
+      mean_anchor_acc <- (output$group %>%
+        filter(group == group.) )$mean_anchor_acc
+      # adds horizontal lines corresponding to r in each group
+      gg <- gg + geom_hline(yintercept = mean_anchor_acc, color=group_color)
+    }
+    # # throws error if columns for the phenotype and PGS were not given
+    # if (!is.na(col_pheno) & !is.na(col_PGS)) {
+    #   # loops through each group in dataset
+    #   for (i in 1:length(groups)) {
+    #     group <- groups[i]
+    #     group_color <- group_colors[i]
+    #     # skips if group is NA
+    #     if (is.na(group)) {next}
+    #     # computes r in each group in different ways
+    #     if (r_group_mode == "r") {
+    #       # calculates cor(phenotype, PGS) for all of that group's samples
+    #       data_plot_group <- data_plot[which(data_plot[[col_group]]==group & !is.na(data_plot[[col_pheno]])),]
+    #       r_group <- cor(data_plot_group[[col_pheno]],
+    #                      data_plot_group[[col_PGS]])
+    #     } else if (r_group_mode == "mean") {
+    #       # calculates mean PGS accuracy for that group's anchor points 
+    #       r_group <- mean(data_plot[data_plot[[col_group]]==group,][[col_PGSacc]], na.rm = TRUE)
+    #     } else {stop("'r_group_mode' must be one of 'r' or 'mean'")}
+    #     # adds horizontal lines corresponding to r in each group
+    #     gg <- gg + geom_hline(yintercept = r_group, color=group_color)
+    #   }
+    # } else {stop("'col_group' was given but 'col_pheno' and 'col_PGS' were not")}
+    
+    
     # adds points of samples, colored by their group
     gg <- gg + geom_point(alpha = alpha, aes(color = !!sym(col_group)))
   } else {
@@ -96,29 +110,26 @@ plot_PGS_decay <- function(
   
   # if columns for phenotype and PGS were given, computes cor(phenotype, PGS) for entire sample
   if (!is.na(col_pheno) & !is.na(col_PGS)) {
-    data_cor <- data_full[which(data_full[[col_dist]] >= min(dist_limits),
-                                data_full[[col_dist]] <= max(dist_limits)),
-                          c(col_pheno, col_PGS)] %>% drop_na()
-    r_global <- cor(data_cor[[col_pheno]], data_cor[[col_PGS]])
+    r_global <- output$global$r
     gg <- gg + geom_hline(yintercept = r_global, color="grey")
   }
   
-  # gets correlation and linear regression information on locPGSacc ~ dist
-  cor1 <- cor.test(data_plot$locPGSacc, data_plot$dist)
-  lm1 <- lm(locPGSacc ~ dist, data = data_plot)
-  r <- round(cor1$estimate,3)
-  pval_text <- pvalue2text(cor1$p.value)
-  slope <- pvalue2text(lm1$coefficients[[2]])
+  # gets statistics to annotate 
+  r <- output$cor$r
+  p <- output$cor$p
+  pval_text <- pvalue2text(p)
+  m_hat <- output$lm$m_hat
+  m_hat_text <- paste0(round(m_hat*1000,3),"%*%10^-3")
+  # pre-writes annotation of locPGS ~ dist using plotmath() parsing
+  annotation <- paste0("r==",round(r,3),"~~","~p==",pval_text,"~~","hat(m)==",m_hat_text)
   
   # extracts x and y scale from plot so far
   xrange <- layer_scales(gg)$x$range$range
   yrange <- layer_scales(gg)$y$range$range
-  # pre-writes annotation of locPGS ~ dist using plotmath() parsing
-  annotation <- paste0("r==",r,"~'\n'~","~p==",pval_text,"~'\n'~","m==",slope)
   
   # makes rest of points
   gg <- gg + 
-    geom_smooth(method='lm', color="red") +
+    geom_smooth(method='lm', color="red", formula = y ~ x) +
     annotate("text", x = max(xrange), y = max(yrange), label = annotation,
              parse = TRUE, vjust=1, hjust=1) +
     xlab("Distance") + ylab("Local PGS Accuracy") +

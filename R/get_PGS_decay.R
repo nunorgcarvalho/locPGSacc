@@ -19,6 +19,45 @@
 #' @param return_objects (optional) logical: whether the function should return the outputs of cor.test() and lm() directly, rather than extracting the most important metrics
 #' @param window_prop (optional) numeric: proportion of 'col_dist' range that is used for computing standardized PGS decay slope (m_hat)
 #' 
+#' @return Returns a nested list with statistics related to PGS decay:
+#' \itemize{
+#'   \item cor: computes correlation between locPGSacc & dim_dist
+#'    \itemize{
+#'      \item r = Pearson's correlation coefficient
+#'      \item p = p-value
+#'      \item CI95 = 95% confidence interval
+#'    }
+#'   \item lm: computes a linear regression for locPGSacc ~ dim_dist
+#'    \itemize{
+#'      \item intercept = intercept of line of best fit
+#'      \item m = slope of line of best fit
+#'      \item p = p-value for slope
+#'      \item m_hat = standardized slope; m divided by the cor(pheno, PGS) among
+#'            reference population (individuals found within (1 - window_prop/2)
+#'            (default = 2.5%) of the maximum dim_dist in data); uses mean
+#'            locPGSacc when columns not given
+#'    }
+#'   \item global: computes cor(pheno, PGS) on all samples
+#'    \itemize{
+#'      \item r = Pearson's correlation coefficient
+#'      \item p = p-value
+#'    }
+#'   \item group: tibble containing series of statistics for each group (excluding NA) in dataset
+#'    \itemize{
+#'      \item group = name of group
+#'      \item N = number of total individuals in group
+#'      \item N_anchors = number of anchors for which locPGSacc was computed
+#'      \item mean_neighbors = average number of neighbors among groups' anchors
+#'      \item dist_mean = average dim_dist of all individuals in group
+#'      \item dist_sd = standard deviation of dim_dist of all individuals in group
+#'      \item r = correlation between phenotype and PGS for all individuals in group
+#'      \item p = p-value of cor(pheno, PGS)
+#'      \item r_rel = cor(pheno,PGS) of group divided by cor(pheno,PGS) among
+#'            reference population (see above)
+#'      \item mean_anchor_acc = average locPGSacc among groups' anchors
+#'    }
+#' } 
+#' 
 #' @export
 #' 
 #' @import tidyverse
@@ -52,22 +91,21 @@ get_PGS_decay <- function(
       m = as.numeric(NA),
       p = as.numeric(NA)
     ),
-    accuracy = list(
-      global = list(
-        r = as.numeric(NA),
-        p = as.numeric(NA) 
-      ),
-      group = tibble(group = as.character(),
-                     N = as.numeric(),
-                     N_anchors = as.numeric(),
-                     mean_neighbors = as.numeric(),
-                     dist_mean = as.numeric(),
-                     dist_sd = as.numeric(),
-                     r = as.numeric(),
-                     p = as.numeric(),
-                     r_rel = as.numeric(),
-                     mean_anchor_acc = as.numeric())
-    )
+    global = list(
+      r = as.numeric(NA),
+      p = as.numeric(NA) 
+    ),
+    group = tibble(group = as.character(),
+                   N = as.numeric(),
+                   N_anchors = as.numeric(),
+                   mean_neighbors = as.numeric(),
+                   dist_mean = as.numeric(),
+                   dist_sd = as.numeric(),
+                   r = as.numeric(),
+                   p = as.numeric(),
+                   r_rel = as.numeric(),
+                   mean_anchor_acc = as.numeric()
+                   )
   )
   # renames known columns for data set ####
   data <- data  %>% rename(locPGSacc = !!sym(col_PGSacc),
@@ -123,7 +161,7 @@ get_PGS_decay <- function(
     r_ref <- mean(data_anchors_ref$locPGSacc)
   }
   
-  m_hat <- m / (window_prop * r_ref)
+  m_hat <- m / r_ref
   output$lm$m_hat <- m_hat
   
   # accuracy ####
@@ -134,9 +172,9 @@ get_PGS_decay <- function(
     data_cor <- data %>% filter(!is.na(pheno), !is.na(PGS))
     cor2 <- cor.test(data_cor$pheno, data_cor$PGS)
     if (!return_objects) {
-      output$accuracy$global$r <- cor2$estimate
-      output$accuracy$global$p <- cor2$p.value
-    } else {output$accuracy$global <- cor2}
+      output$global$r <- cor2$estimate
+      output$global$p <- cor2$p.value
+    } else {output$global <- cor2}
     
     # groups ####
     if (!is.na(col_group)) {
@@ -155,7 +193,7 @@ get_PGS_decay <- function(
         } else {mean_neighbors <- mean(data_anchors_group$n_neighbors)}
         
         # adds to table
-        output$accuracy$group <- output$accuracy$group %>%
+        output$group <- output$group %>%
           add_row(
             group = group.,
             N = nrow(data_group),
@@ -170,11 +208,11 @@ get_PGS_decay <- function(
           )
       }
       # sorts groups by dist_mean
-      output$accuracy$group <- output$accuracy$group %>%
+      output$group <- output$group %>%
         arrange(dist_mean)
-    }
+    } else {output$group <- NULL} # removes if columns not present
     
-  } else {output$accuracy <- NULL} # removes accuracy output if columns not present
+  } else {output$global <- NULL} # removes if columns not present
   
   # returns output ####
   return(output)

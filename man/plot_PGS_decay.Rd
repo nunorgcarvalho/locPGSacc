@@ -11,8 +11,7 @@ plot_PGS_decay(
   col_group = NA,
   dist_limits = NA,
   col_pheno = NA,
-  col_PGS = NA,
-  r_group_mode = "r"
+  col_PGS = NA
 )
 }
 \arguments{
@@ -29,12 +28,6 @@ plot_PGS_decay(
 \item{col_pheno}{(optional) character: column name of the phenotype of interest}
 
 \item{col_PGS}{(optional) character: column name of the polygenic scores for the phenotype of interest}
-
-\item{r_group_mode}{(optional) character: mode for computing group PGS accuracy values
-\itemize{
-\item 'r' = calculates cor(phenotype, PGS) for all of that group's samples
-\item 'mean' = calculates mean PGS accuracy for that group's anchor points
-}}
 }
 \description{
 Returns plot of local PGS accuracy as a function of sample distance
