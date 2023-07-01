@@ -33,14 +33,21 @@
 locPGSacc <- function (
     data,
     col_dims,
-    col_pheno,
-    col_PGS,
-    col_PGSacc = "locPGSacc",
+    col_pheno, # for r
+    col_PGS, # for r
+    col_PGSacc = "locPGSacc", # for r
+    method = "FAST",
     R = -1,
     k = -1,
-    mode = "hybrid", # fr=fixed-radius, k=k closest neighbors, hybrid=highest n_neighbors of fr and k
+    mode = "hybrid",
+    i_omit = c(),
     NN_ids = list(),
-    force_large_N = FALSE
+    force_FULL = FALSE,
+    # get_NNs.FAST specific parameters
+    multiplier = 1,
+    coverage = 1,
+    seed = NA,
+    verbose = FALSE
 ) {
   # Checks if data table already contains an output column
   cols_needed <- c("n_neighbors",col_PGSacc)
@@ -56,18 +63,24 @@ locPGSacc <- function (
     # uses get_NNs to retrieve nearest neighbors
     NN_ids <- get_NNs(
       data,
-      col_dims=col_dims,
+      col_dims = col_dims,
+      method = method,
       R = R,
       k = k,
       mode = mode,
       i_omit = i_omit,
-      force_large_N = force_large_N
+      force_FULL = force_FULL,
+      multiplier = multiplier,
+      coverage = coverage,
+      seed = seed,
+      verbose = verbose
     )
   } else {
     # throws error if inputted NN_ids does not match data
     if (length(NN_ids) != nrow(data)) {stop("Length of NN_ids does not match number of rows in data")}
   }
   data$n_neighbors <- sapply(NN_ids, length)
+  data$n_neighbors[data$n_neighbors==0] <- NA
   
   # computes correlation between phenotype and PGS for phenotype
   print("Computing correlation within each neighborhood")
@@ -83,8 +96,6 @@ locPGSacc <- function (
   }
   data[[col_PGSacc]] <- r_values
   
-  # reappends missing data rows at the end
-  #if (nrow(data_NA)>0) {data <- data %>% add_row(data_NA)}
-  
+  # returns full data set
   return(data)
 }
