@@ -1,7 +1,7 @@
 Package: locPGSacc
 Type: Package
 Title: Local Polygenic Score Accuracy in Principal Component Space
-Version: 1.0.2
+Version: 1.1.0
 RoxygenNote: 7.2.3
 Roxygen: list(markdown = TRUE)
 Encoding: UTF-8
