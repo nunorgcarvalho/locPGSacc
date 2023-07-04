@@ -17,7 +17,7 @@
 #' @param col_group (optional) character: column name of sample group assignments
 #' @param col_n_neighbors (optional) character: column name of points' number of neighbors
 #' @param return_objects (optional) logical: whether the function should return the outputs of cor.test() and lm() directly, rather than extracting the most important metrics
-#' @param window_prop (optional) numeric: proportion of 'col_dist' range that is used for computing standardized PGS decay slope (m_hat)
+#' @param ref_window (optional) numeric: proportion of sample with lowest 'col_dist' that is used for computing standardized PGS decay slope (m_hat)
 #' 
 #' @return Returns a nested list with statistics related to PGS decay:
 #' \itemize{
@@ -33,8 +33,8 @@
 #'      \item m = slope of line of best fit
 #'      \item p = p-value for slope
 #'      \item m_hat = standardized slope; m divided by the cor(pheno, PGS) among
-#'            reference population (individuals found within (1 - window_prop/2)
-#'            (default = 2.5%) of the maximum dim_dist in data); uses mean
+#'            reference population (the ref_window*100% individuals (default 5%)
+#'            with the lowest 'col_dim' in the data); uses mean
 #'            locPGSacc when columns not given
 #'    }
 #'   \item global: computes cor(pheno, PGS) on all samples
@@ -72,7 +72,7 @@ get_PGS_decay <- function(
     col_group = NA, # optional
     col_n_neighbors = NA,
     return_objects = FALSE,
-    window_prop = 0.95 # central proportion of dim_dist range considered for standardizing m
+    ref_window = 0.1 # central proportion of dim_dist range considered for standardizing m
 ) {
   # checks if column names exist ####
   cols <- c(col_PGSacc, col_dist, col_group, col_pheno, col_PGS, col_n_neighbors)
@@ -148,16 +148,21 @@ get_PGS_decay <- function(
     output$lm$p <- summary(lm1)$coefficients[2,4]
   } else {output$lm <- lm1}
   ## gets standardized m ####
-  range2 <- window_prop * diff(dist_limits)
-  dist_limits2 <- c(mean(dist_limits) - range2/2,
-                    mean(dist_limits) + range2/2)
+  # range2 <- window_prop * diff(dist_limits)
+  # dist_limits2 <- c(mean(dist_limits) - range2/2,
+  #                   mean(dist_limits) + range2/2)
   # uses actual cor(PGS, pheno) for standard ref if given
   if (!is.na(col_pheno) & !is.na(col_PGS)) {
-    data_ref <- data %>% filter(dim_dist < dist_limits2[1],
-                                !is.na(pheno), !is.na(PGS))
+    # data_ref <- data %>% filter(dim_dist < dist_limits2[1],
+    #                             !is.na(pheno), !is.na(PGS))
+    data_ref <- data %>% filter(!is.na(pheno), !is.na(PGS))
+    data_ref <- data_ref %>% arrange(dim_dist) %>%
+      filter(row_number() <= ceiling(ref_window*nrow(data_ref)))
     r_ref <- cor(data_ref$pheno, data_ref$PGS)
   } else {
-    data_anchors_ref <- data_anchors %>% filter(dim_dist < dist_limits2[1])
+    #data_anchors_ref <- data_anchors %>% filter(dim_dist < dist_limits2[1])
+    data_anchors_ref <- data_anchors %>% arrange(dim_dist) %>%
+      filter(row_number() <= ceiling(ref_window*nrow(data_anchors)))
     r_ref <- mean(data_anchors_ref$locPGSacc)
   }
   

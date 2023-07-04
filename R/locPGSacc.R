@@ -89,12 +89,11 @@ locPGSacc <- function (
   for (i in 1:length(NN_ids)) {
     NN_ids_i <- NN_ids[[i]]
     # skips if no NNs were computed
-    if (is.null(NN_ids_i)) {next}
-    # once again checks for missing NA values, but should already be covered earlier
-    # data_cor <- data[ NN_ids_i, c(col_pheno, col_PGS)] %>% drop_na()
-    # r <- cor(data_cor[[ col_pheno ]],
-    #          data_cor[[ col_PGS ]])
-    r <- get_accuracy(data, NN_ids_i, col_pheno=col_pheno, col_PGS=col_PGS)
+    if (is.null(NN_ids_i)) {r <- NA
+    } else {
+      if (length(NN_ids_i)==0) {r <- NA
+      } else {r <- get_accuracy(data, NN_ids_i, col_pheno=col_pheno, col_PGS=col_PGS)}
+    }
     r_values[i] <- r
   }
   data[[col_PGSacc]] <- r_values
