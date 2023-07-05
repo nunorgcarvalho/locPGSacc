@@ -47,7 +47,7 @@ plot_PGS_decay <- function(
     theme_light()
   
   # gets decay statistics from get_PGS_decay()
-  output <- get_PGS_decay(data,
+  output <- get_PGS_decay(data_full,
                           col_PGSacc = col_PGSacc,
                           col_dist = col_dist,
                           dist_limits = dist_limits,

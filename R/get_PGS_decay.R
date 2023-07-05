@@ -189,6 +189,7 @@ get_PGS_decay <- function(
       for (group. in groups) {
         # computes correlation between phenotype and PGS for specific group
         data_group <- data_cor %>% filter(group == group.)
+        if (nrow(data_group) <= 2) {next}
         cor3 <- cor.test(data_group$pheno, data_group$PGS)
         
         data_anchors_group <- data_anchors %>% filter(group == group.)
