@@ -211,7 +211,6 @@ get_NNs.FAST <- function(
     } else {anchor <- sample(c(unhoused), 1)}
     
     anchors <- c(anchors, anchor)
-    if (verbose) { print(paste("Anchor #",length(anchors),"Unhoused:",length(unhoused))) }
     
     if (mode=="fr") {
       # Fixed-radius mode
@@ -232,6 +231,11 @@ get_NNs.FAST <- function(
         NN_anchor <- split(NNk$id,seq_len(nrow(NNk$id)))[[1]]
       }
     }
+    if (verbose) { print(paste("Anchor #",length(anchors), "::",
+                               "Neighbors:", length(NN_anchor), "::",
+                               "Unhoused:",length(unhoused)
+                               )) }
+    
     housing[ NN_anchor ] <- housing[ NN_anchor ] + 1
     NN_ids_keep[[anchor]] <- NN_anchor
   }
