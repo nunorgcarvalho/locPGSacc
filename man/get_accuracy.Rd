@@ -7,6 +7,8 @@
 get_accuracy(data, NN_ids_i, col_pheno, col_PGS)
 }
 \arguments{
+\item{data}{data table containing all necessary columns and rows}
+
 \item{col_pheno}{character: column name of the phenotype of interest}
 
 \item{col_PGS}{character: column name of the polygenic scores for the phenotype of interest}

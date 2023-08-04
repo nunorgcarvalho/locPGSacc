@@ -14,7 +14,7 @@ get_PGS_decay(
   col_group = NA,
   col_n_neighbors = NA,
   return_objects = FALSE,
-  window_prop = 0.95
+  ref_window = 0.1
 )
 }
 \arguments{
@@ -36,7 +36,7 @@ get_PGS_decay(
 
 \item{return_objects}{(optional) logical: whether the function should return the outputs of cor.test() and lm() directly, rather than extracting the most important metrics}
 
-\item{window_prop}{(optional) numeric: proportion of 'col_dist' range that is used for computing standardized PGS decay slope (m_hat)}
+\item{ref_window}{(optional) numeric: proportion of sample with lowest 'col_dist' that is used for computing standardized PGS decay slope (m_hat)}
 }
 \value{
 Returns a nested list with statistics related to PGS decay:
@@ -53,8 +53,8 @@ Returns a nested list with statistics related to PGS decay:
 \item m = slope of line of best fit
 \item p = p-value for slope
 \item m_hat = standardized slope; m divided by the cor(pheno, PGS) among
-reference population (individuals found within (1 - window_prop/2)
-(default = 2.5\%) of the maximum dim_dist in data); uses mean
+reference population (the ref_window*100\% individuals (default 5\%)
+with the lowest 'col_dim' in the data); uses mean
 locPGSacc when columns not given
 }
 \item global: computes cor(pheno, PGS) on all samples
@@ -79,7 +79,7 @@ reference population (see above)
 }
 }
 \description{
-Returns statistics related to local PGS accuracy as a function of sample distance
+Returns statistics related to local PGS accuracy as a function of sample distance (NN method)
 }
 \details{
 Takes a dataset with columns for local PGS accuracy (or any other

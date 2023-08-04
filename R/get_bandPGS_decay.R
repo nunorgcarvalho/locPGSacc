@@ -1,6 +1,6 @@
-#' @title bandPGSacc
-#' @description Computes PGS accuracy along bands of another variable
-#' @author Nuno R. G. Carvalho: \email{nunocarvalho@@gatech.edu}
+#' @title get_bandPGS_decay
+#' @description Returns statistics related to local PGS accuracy as a function of sample distance (band method)
+#' @inherit locPGSacc author
 #' 
 #' @details WIP
 #' 
@@ -17,7 +17,7 @@
 #' 
 #' @import tidyverse
 
-bandPGSacc <- function (
+get_bandPGS_decay <- function (
     data,
     col_dim,
     col_pheno, # for r
@@ -27,11 +27,26 @@ bandPGSacc <- function (
     bands = 10
 ) {
   
+  # output list is established ####
+  output <- list(
+    band_data = tibble(),
+    lm = list(
+      intercept = as.numeric(NA),
+      m = as.numeric(NA),
+      p = as.numeric(NA)
+    ),
+    global = list(
+      r = as.numeric(NA),
+      p = as.numeric(NA) 
+    )
+  )
+  
+  
   i_omit <- (1:nrow(data))[is.na(data[[col_pheno]]) | is.na(data[[col_PGS]])]
   
   data <- data[-i_omit,] %>% select(dim = !!sym(col_dim),
-                                   pheno = !!sym(col_pheno),
-                                   PGS = !!sym(col_PGS))
+                                    pheno = !!sym(col_pheno),
+                                    PGS = !!sym(col_PGS))
   
   low_bound_i <- round((0.5 - window/2)*length(data$dim))
   upp_bound_i <- round((0.5 + window/2)*length(data$dim))
@@ -42,7 +57,7 @@ bandPGSacc <- function (
   data$dim_group <- cut(data$dim, breaks = breaks, include.lowest = TRUE)
   table(data$dim_group)
   
-  band_decay <- tibble(band = as.character(),
+  band_data <- tibble(band = as.character(),
                        min = as.numeric(),
                        max = as.numeric(),
                        N = as.numeric(),
@@ -58,7 +73,7 @@ bandPGSacc <- function (
     
     cor1 <- cor.test(data_band$PGS,data_band$pheno)
     
-    band_decay <- band_decay %>% add_row(
+    band_data <- band_data %>% add_row(
       band = band,
       min = min(data_band$dim),
       max = max(data_band$dim),
@@ -68,18 +83,21 @@ bandPGSacc <- function (
       r_upper = cor1$conf.int[2]
     )
   }
-  band_decay$median <- ( data %>% group_by(dim_group) %>% summarize(median = median(dim)) )$median
-  lm1 <- lm(r ~ median, data = band_decay, weights = band_decay$N)
-  summary(lm1)
-  p <- summary(lm1)$coefficients[2,4]
-  r_global <- cor(data$pheno, data$PGS)
+  band_data$median <- ( data %>% group_by(dim_group) %>% summarize(median = median(dim)) )$median
+  lm1 <- lm(r ~ median, data = band_data, weights = band_data$N)
+  cor1 <- cor.test(data$pheno, data$PGS)
   
-  print(paste(col_dim, code, p < 0.05, p))
   
-  ggplot(band_decay %>% filter(N >= 30), aes(x = median, y = r)) +
-    geom_hline(yintercept = r_global, color="red") +
-    geom_point() +
-    geom_errorbar(aes(ymin = r_lower, ymax = r_upper)) +
-    #geom_abline(intercept = lm1$coefficients[1], slope = lm1$coefficients[2], color = "red") +
-    geom_smooth(method = "lm", aes(weight = N))
+  output$band_data <- band_data
+  output$lm$intercept<- lm1$coefficients[[1]]
+  output$lm$m <- lm1$coefficients[[2]]
+  output$lm$p <- summary(lm1)$coefficients[2,4]
+  
+  if (!is.na(col_pheno) & !is.na(col_PGS)) {
+    output$global$r <- cor1$estimate
+    output$global$p <- cor1$p.value
+  } else {output$global <- NULL}
+  
+  return(output)
+  
 }

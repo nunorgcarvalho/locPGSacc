@@ -1,5 +1,5 @@
 #' @title get_PGS_decay
-#' @description Returns statistics related to local PGS accuracy as a function of sample distance
+#' @description Returns statistics related to local PGS accuracy as a function of sample distance (NN method)
 #' @inherit locPGSacc author
 #' 
 #' @details Takes a dataset with columns for local PGS accuracy (or any other
