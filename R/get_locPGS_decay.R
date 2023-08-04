@@ -1,4 +1,4 @@
-#' @title get_PGS_decay
+#' @title get_locPGS_decay
 #' @description Returns statistics related to local PGS accuracy as a function of sample distance (NN method)
 #' @inherit locPGSacc author
 #' 
@@ -62,7 +62,7 @@
 #' 
 #' @import tidyverse
 
-get_PGS_decay <- function(
+get_locPGS_decay <- function(
     data,
     col_PGSacc = "locPGSacc",
     col_dist = "dim_dist",

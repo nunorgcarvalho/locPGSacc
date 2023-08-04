@@ -1,4 +1,4 @@
-#' @title plot_PGS_decay
+#' @title plot_locPGS_decay
 #' @description Plots local PGS accuracy as a function of sample distance
 #' @inherit locPGSacc author
 #' 
@@ -6,16 +6,16 @@
 #' desired metric) and sample distance (e.g. genetic PC distance) and plots the
 #' decay of PGS accuracy as a function of distance. Other optional arguments
 #' allow for plotting of PGS accuracy across entire sample and within groups
-#' (e.g. ancestries). Annotated statistics are computed from [get_PGS_decay()].
+#' (e.g. ancestries). Annotated statistics are computed from [get_locPGS_decay()].
 #' 
-#' @inheritParams get_PGS_decay
+#' @inheritParams get_locPGS_decay
 #' 
 #' @export
 #' 
 #' @import tidyverse
 
 
-plot_PGS_decay <- function(
+plot_locPGS_decay <- function(
     data,
     col_PGSacc = "locPGSacc",
     col_dist = "dim_dist",
@@ -47,13 +47,13 @@ plot_PGS_decay <- function(
     theme_light()
   
   # gets decay statistics from get_PGS_decay()
-  output <- get_PGS_decay(data_full,
-                          col_PGSacc = col_PGSacc,
-                          col_dist = col_dist,
-                          dist_limits = dist_limits,
-                          col_pheno = col_pheno,
-                          col_PGS = col_PGS,
-                          col_group = col_group)
+  output <- get_locPGS_decay(data_full,
+                             col_PGSacc = col_PGSacc,
+                             col_dist = col_dist,
+                             dist_limits = dist_limits,
+                             col_pheno = col_pheno,
+                             col_PGS = col_PGS,
+                             col_group = col_group)
   
   # adds horizontal lines denoting PGS accuracy within each defined group (if given)
   if (!is.na(col_group)) {

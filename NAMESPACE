@@ -2,11 +2,11 @@
 
 export(dim_dist)
 export(get_NNs)
-export(get_PGS_decay)
 export(get_bandPGS_decay)
+export(get_locPGS_decay)
 export(locPGSacc)
-export(plot_PGS_decay)
 export(plot_bandPGS_decay)
+export(plot_locPGS_decay)
 export(pvalue2text)
 import(dbscan)
 import(tidyverse)
