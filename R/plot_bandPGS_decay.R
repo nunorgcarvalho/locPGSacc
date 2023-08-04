@@ -23,6 +23,7 @@ plot_bandPGS_decay <- function (
     i_omit = c(),
     window = 0.95,
     bands = 10,
+    min_samples = 3,
     fixed_ymin = TRUE
 ) {
   
@@ -32,13 +33,16 @@ plot_bandPGS_decay <- function (
                               col_PGS = col_PGS, # for r
                               i_omit = i_omit,
                               window = window,
-                              bands = bands )
+                              bands = bands,
+                              min_samples = min_samples)
   
   band_data <- output$band_data
   
   pval_text <- pvalue2text(output$lm$p)
   m_text <- paste0(round(output$lm$m*1000,3),"%*%10^-3")
+  m_hat_text <- paste0(round(output$lm$m_hat*1000,3),"%*%10^-3")
   annotation <- paste0("p==",pval_text,
+                       "~~hat(m)==",m_hat_text,
                        "~~m==",m_text)
   
   gg <- ggplot(band_data %>% filter(N >= 30), aes(x = median, y = r)) +
@@ -58,7 +62,7 @@ plot_bandPGS_decay <- function (
     theme_light() +
     xlab("Distance") + ylab("PGS Accuracy")
   
-  if (fixed_ymin) {gg <- gg + ylim(0, max(yrange))}
+  if (fixed_ymin) {gg <- gg + ylim(min(0,min(yrange)), max(yrange))}
   
   return(gg)
 }

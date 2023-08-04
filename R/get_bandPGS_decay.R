@@ -12,6 +12,7 @@
 #' @param col_dim character: column name of the dimensional variable for which to compute bands from
 #' @param window (optional) numeric: proportion of the distribution, centered at the median, to include when making bands
 #' @param bands (optional) integer: number of bands (i.e. sections) to split up the middle of the sample by according to the dimensional variable. An extra band is made on each end to include dispersed samples.  
+#' @param min_samples (optional) integer: minimum number of samples needed in a band to compute PGS accuracy. Must be > 2
 #' 
 #' @return Returns a nested list with statistics related to banded PGS decay:
 #' \itemize{
@@ -24,6 +25,7 @@
 #'      \item r = correlation between phenotype and PGS within band
 #'      \item r_lower = lower r estimate from 95% confidence interval
 #'      \item r_upper = upper r estimate from 95% confidence interval
+#'      \item median = median value of dimensional variable of band's samples
 #'    }
 #'   \item lm: computes a linear regression for bandPGSacc ~ dim_dist across the bands
 #'    \itemize{
@@ -53,7 +55,8 @@ get_bandPGS_decay <- function (
     col_PGS,
     i_omit = c(),
     window = 0.95,
-    bands = 10
+    bands = 10,
+    min_samples = 3
 ) {
   
   # output list is established ####
@@ -70,38 +73,40 @@ get_bandPGS_decay <- function (
     )
   )
   
-  
-  i_omit <- (1:nrow(data))[is.na(data[[col_pheno]]) | is.na(data[[col_PGS]])]
-  
+  # gets list of samples with missing data
+  i_omit <- (1:nrow(data))[is.na(data[[col_pheno]]) | is.na(data[[col_PGS]]) | is.na(data[[col_dim]])]
+  # removes missing data and renames columns of interest
   data <- data[-i_omit,] %>% select(dim = !!sym(col_dim),
                                     pheno = !!sym(col_pheno),
                                     PGS = !!sym(col_PGS))
-  
+  # gets range of dimension variable within specified central window of population distribution
   low_bound_i <- round((0.5 - window/2)*length(data$dim))
   upp_bound_i <- round((0.5 + window/2)*length(data$dim))
   range. = sort(data$dim)[low_bound_i:upp_bound_i] %>% range()
-  
+  # splits up dimension variable according to bands, plus <window and >window samples
   breaks <- c( min(data$dim), seq(range.[1], range.[2], diff(range.)/bands), max(data$dim) )
-  
+  # assigns individuals into bands
   data$dim_group <- cut(data$dim, breaks = breaks, include.lowest = TRUE)
-  table(data$dim_group)
-  
+  # creates empty tibble for later data
   band_data <- tibble(band = as.character(),
                        min = as.numeric(),
                        max = as.numeric(),
                        N = as.numeric(),
                        r = as.numeric(),
                        r_lower = as.numeric(),
-                       r_upper = as.numeric()
-  )
+                       r_upper = as.numeric() )
+  # loops through band ####
   for (band in levels(data$dim_group)) {
-    #print(band)
     data_band <- data %>% filter(dim_group == band)
-    
-    if (nrow(data_band) <= 2) {next}
-    
-    cor1 <- cor.test(data_band$PGS,data_band$pheno)
-    
+    # skips correlation in band if less than 2 samples are present in band
+    if (nrow(data_band) < min_samples) {
+      cor1 <- list("estimate" = as.numeric(NA),
+                   "conf.int" = as.numeric(c(NA,NA)) )
+    } else {
+      # computes correlation between phenotype and PGS for the band
+      cor1 <- cor.test(data_band$PGS,data_band$pheno)
+    }
+    # adds data to band_data tibble
     band_data <- band_data %>% add_row(
       band = band,
       min = min(data_band$dim),
@@ -112,20 +117,31 @@ get_bandPGS_decay <- function (
       r_upper = cor1$conf.int[2]
     )
   }
+  # computes median dimension variable value within each band
   band_data$median <- ( data %>% group_by(dim_group) %>% summarize(median = median(dim)) )$median
+  
+  # computes linear regression of band PGS accuracy against the median band distance
+  # uses sample size of band as weight
   lm1 <- lm(r ~ median, data = band_data, weights = band_data$N)
+  m <- lm1$coefficients[[2]]
+  
+  # gets PGS accuracy of band closest to zero (by median)
+  i_ref <- order(band_data$median)[1]
+  r_ref <- band_data$r[i_ref]
+  # adjust m slope by the r_ref and range
+  m_hat <- m * diff(range.) / r_ref
+  
+  # computes correlation between phenotype and PGS for entire sample
   cor1 <- cor.test(data$pheno, data$PGS)
   
-  
+  # saves data to output list
   output$band_data <- band_data
   output$lm$intercept<- lm1$coefficients[[1]]
-  output$lm$m <- lm1$coefficients[[2]]
+  output$lm$m <- m
   output$lm$p <- summary(lm1)$coefficients[2,4]
-  
-  if (!is.na(col_pheno) & !is.na(col_PGS)) {
-    output$global$r <- cor1$estimate
-    output$global$p <- cor1$p.value
-  } else {output$global <- NULL}
+  output$lm$m_hat <- m_hat
+  output$global$r <- cor1$estimate
+  output$global$p <- cor1$p.value
   
   return(output)
   

@@ -11,7 +11,8 @@ get_bandPGS_decay(
   col_PGS,
   i_omit = c(),
   window = 0.95,
-  bands = 10
+  bands = 10,
+  min_samples = 3
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ get_bandPGS_decay(
 \item{window}{(optional) numeric: proportion of the distribution, centered at the median, to include when making bands}
 
 \item{bands}{(optional) integer: number of bands (i.e. sections) to split up the middle of the sample by according to the dimensional variable. An extra band is made on each end to include dispersed samples.}
+
+\item{min_samples}{(optional) integer: minimum number of samples needed in a band to compute PGS accuracy. Must be > 2}
 }
 \value{
 Returns a nested list with statistics related to banded PGS decay:
@@ -41,6 +44,7 @@ Returns a nested list with statistics related to banded PGS decay:
 \item r = correlation between phenotype and PGS within band
 \item r_lower = lower r estimate from 95\% confidence interval
 \item r_upper = upper r estimate from 95\% confidence interval
+\item median = median value of dimensional variable of band's samples
 }
 \item lm: computes a linear regression for bandPGSacc ~ dim_dist across the bands
 \itemize{

@@ -12,6 +12,7 @@ plot_bandPGS_decay(
   i_omit = c(),
   window = 0.95,
   bands = 10,
+  min_samples = 3,
   fixed_ymin = TRUE
 )
 }
@@ -29,6 +30,8 @@ plot_bandPGS_decay(
 \item{window}{(optional) numeric: proportion of the distribution, centered at the median, to include when making bands}
 
 \item{bands}{(optional) integer: number of bands (i.e. sections) to split up the middle of the sample by according to the dimensional variable. An extra band is made on each end to include dispersed samples.}
+
+\item{min_samples}{(optional) integer: minimum number of samples needed in a band to compute PGS accuracy. Must be > 2}
 
 \item{fixed_ymin}{(optional) logical: whether the y-axis should start at 0 (default) or just be the minimum accuracy}
 }
