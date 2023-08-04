@@ -2,17 +2,15 @@
 #' @description Computes PGS accuracy along bands of another variable
 #' @inherit locPGSacc author
 #' 
-#' @details WIP
+#' @details Plots the decay of PGS accuracy along some dimensional variables by
+#' cutting up the dimensional variable into bands/sections. More details in
+#' [get_bandPGS_decay()].
 #' 
-#' @inheritParams get_NNs
-#' @inheritParams get_accuracy
-#' @param col_dim character: column name of the dimension variable for which to compute bands from
-#' @param window (optional) numeric: proportion of the distribution, centered at the median, to include when making bands
-#' @param bands (optional) integer: number of bands (i.e. sections) to split up the sample by according to the dimensional variable
+#' @inheritParams get_bandPGS_decay
+#' @param fixed_ymin (optional) logical: whether the y-axis should start at 0 (default) or just be the minimum accuracy
 #' 
-#' @return WIP
+#' @return Plot of the results of [get_bandPGS_decay()].
 #' 
-#'
 #' @export
 #' 
 #' @import tidyverse
@@ -20,11 +18,12 @@
 plot_bandPGS_decay <- function (
     data,
     col_dim,
-    col_pheno, # for r
-    col_PGS, # for r
+    col_pheno,
+    col_PGS,
     i_omit = c(),
     window = 0.95,
-    bands = 10
+    bands = 10,
+    fixed_ymin = TRUE
 ) {
   
   output <- get_bandPGS_decay(data = data,
@@ -58,6 +57,8 @@ plot_bandPGS_decay <- function (
     #geom_smooth(method = "lm", aes(weight = N)) +
     theme_light() +
     xlab("Distance") + ylab("PGS Accuracy")
+  
+  if (fixed_ymin) {gg <- gg + ylim(0, max(yrange))}
   
   return(gg)
 }

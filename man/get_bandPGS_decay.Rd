@@ -17,7 +17,7 @@ get_bandPGS_decay(
 \arguments{
 \item{data}{data table containing all necessary columns and rows}
 
-\item{col_dim}{character: column name of the dimension variable for which to compute bands from}
+\item{col_dim}{character: column name of the dimensional variable for which to compute bands from}
 
 \item{col_pheno}{character: column name of the phenotype of interest}
 
@@ -27,16 +27,45 @@ get_bandPGS_decay(
 
 \item{window}{(optional) numeric: proportion of the distribution, centered at the median, to include when making bands}
 
-\item{bands}{(optional) integer: number of bands (i.e. sections) to split up the sample by according to the dimensional variable}
+\item{bands}{(optional) integer: number of bands (i.e. sections) to split up the middle of the sample by according to the dimensional variable. An extra band is made on each end to include dispersed samples.}
 }
 \value{
-WIP
+Returns a nested list with statistics related to banded PGS decay:
+\itemize{
+\item band_data: tibble containing data for each distance band:
+\itemize{
+\item band = range of distance band
+\item min = minimum distance within band
+\item max = max distance within band
+\item N = number of samples in band
+\item r = correlation between phenotype and PGS within band
+\item r_lower = lower r estimate from 95\% confidence interval
+\item r_upper = upper r estimate from 95\% confidence interval
+}
+\item lm: computes a linear regression for bandPGSacc ~ dim_dist across the bands
+\itemize{
+\item intercept = intercept of line of best fit
+\item m = slope of line of best fit
+\item p = p-value for slope
+\item m_hat = standardized slope; m divided by the cor(pheno, PGS) among
+reference population (band closest to distance 0)
+}
+\item global: computes cor(pheno, PGS) on all samples
+\itemize{
+\item r = Pearson's correlation coefficient
+\item p = p-value
+}
+
+}
 }
 \description{
-Returns statistics related to local PGS accuracy as a function of sample distance (band method)
+Returns statistics related to banded PGS accuracy as a function of some dimensional variable.
 }
 \details{
-WIP
+Takes a dataset with columns for a phenotype and its PGS as well as a
+column for a dimensional variable of interest (e.g. genetic distance) and splits the
+sample into equal-length bands/sections. PGS accuracy is calculated within each
+band and the rate of change of accuracy across the dimensional variable is computed.
 }
 \author{
 Nuno R. G. Carvalho: \email{nunocarvalho@gatech.edu}

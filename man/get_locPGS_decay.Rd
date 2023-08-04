@@ -39,7 +39,7 @@ get_locPGS_decay(
 \item{ref_window}{(optional) numeric: proportion of sample with lowest 'col_dist' that is used for computing standardized PGS decay slope (m_hat)}
 }
 \value{
-Returns a nested list with statistics related to PGS decay:
+Returns a nested list with statistics related to local PGS decay:
 \itemize{
 \item cor: computes correlation between locPGSacc & dim_dist
 \itemize{

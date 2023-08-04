@@ -10,6 +10,8 @@
 #' 
 #' @inheritParams get_locPGS_decay
 #' 
+#' @return Plot of the results of [get_locPGS_decay()].
+#' 
 #' @export
 #' 
 #' @import tidyverse

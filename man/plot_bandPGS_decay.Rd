@@ -11,13 +11,14 @@ plot_bandPGS_decay(
   col_PGS,
   i_omit = c(),
   window = 0.95,
-  bands = 10
+  bands = 10,
+  fixed_ymin = TRUE
 )
 }
 \arguments{
 \item{data}{data table containing all necessary columns and rows}
 
-\item{col_dim}{character: column name of the dimension variable for which to compute bands from}
+\item{col_dim}{character: column name of the dimensional variable for which to compute bands from}
 
 \item{col_pheno}{character: column name of the phenotype of interest}
 
@@ -27,16 +28,20 @@ plot_bandPGS_decay(
 
 \item{window}{(optional) numeric: proportion of the distribution, centered at the median, to include when making bands}
 
-\item{bands}{(optional) integer: number of bands (i.e. sections) to split up the sample by according to the dimensional variable}
+\item{bands}{(optional) integer: number of bands (i.e. sections) to split up the middle of the sample by according to the dimensional variable. An extra band is made on each end to include dispersed samples.}
+
+\item{fixed_ymin}{(optional) logical: whether the y-axis should start at 0 (default) or just be the minimum accuracy}
 }
 \value{
-WIP
+Plot of the results of \code{\link[=get_bandPGS_decay]{get_bandPGS_decay()}}.
 }
 \description{
 Computes PGS accuracy along bands of another variable
 }
 \details{
-WIP
+Plots the decay of PGS accuracy along some dimensional variables by
+cutting up the dimensional variable into bands/sections. More details in
+\code{\link[=get_bandPGS_decay]{get_bandPGS_decay()}}.
 }
 \author{
 Nuno R. G. Carvalho: \email{nunocarvalho@gatech.edu}

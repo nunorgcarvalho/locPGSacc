@@ -19,7 +19,7 @@
 #' @param return_objects (optional) logical: whether the function should return the outputs of cor.test() and lm() directly, rather than extracting the most important metrics
 #' @param ref_window (optional) numeric: proportion of sample with lowest 'col_dist' that is used for computing standardized PGS decay slope (m_hat)
 #' 
-#' @return Returns a nested list with statistics related to PGS decay:
+#' @return Returns a nested list with statistics related to local PGS decay:
 #' \itemize{
 #'   \item cor: computes correlation between locPGSacc & dim_dist
 #'    \itemize{

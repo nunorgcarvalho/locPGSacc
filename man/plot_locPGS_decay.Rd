@@ -14,6 +14,24 @@ plot_locPGS_decay(
   col_PGS = NA
 )
 }
+\arguments{
+\item{data}{data table containing all necessary columns and rows}
+
+\item{col_PGSacc}{character: column name of the local PGS accuracy}
+
+\item{col_dist}{character: column name of sample's distance in space}
+
+\item{col_group}{(optional) character: column name of sample group assignments}
+
+\item{dist_limits}{(optional) numeric vector: minimum and maximum x-axis limits for distance}
+
+\item{col_pheno}{(optional) character: column name of the phenotype of interest}
+
+\item{col_PGS}{(optional) character: column name of the polygenic scores for the phenotype of interest}
+}
+\value{
+Plot of the results of \code{\link[=get_locPGS_decay]{get_locPGS_decay()}}.
+}
 \description{
 Plots local PGS accuracy as a function of sample distance
 }
