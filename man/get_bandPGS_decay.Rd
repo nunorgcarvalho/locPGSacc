@@ -10,9 +10,9 @@ get_bandPGS_decay(
   col_pheno,
   col_PGS,
   i_omit = c(),
-  window = 0.95,
-  bands = 10,
-  min_samples = 3
+  ref_window = 0.95,
+  bands = 15,
+  return_objects = FALSE
 )
 }
 \arguments{
@@ -26,11 +26,11 @@ get_bandPGS_decay(
 
 \item{i_omit}{(optional) numeric vector: indices of data rows for which to not consider at all in nearest neighbor algorithm}
 
-\item{window}{(optional) numeric: proportion of the distribution, centered at the median, to include when making bands}
+\item{ref_window}{(optional) numeric: proportion of the distribution, centered at the median, to include when making bands}
 
 \item{bands}{(optional) integer: number of bands (i.e. sections) to split up the middle of the sample by according to the dimensional variable. An extra band is made on each end to include dispersed samples.}
 
-\item{min_samples}{(optional) integer: minimum number of samples needed in a band to compute PGS accuracy. Must be > 2}
+\item{return_objects}{(optional) logical: whether the function should return the outputs of cor.test() and lm() directly, rather than extracting the most important metrics}
 }
 \value{
 Returns a nested list with statistics related to banded PGS decay:
@@ -50,9 +50,12 @@ Returns a nested list with statistics related to banded PGS decay:
 \itemize{
 \item intercept = intercept of line of best fit
 \item m = slope of line of best fit
+\item m_se = standard error of the slope of line of best fit
 \item p = p-value for slope
-\item m_hat = standardized slope; m divided by the cor(pheno, PGS) among
+\item m_hat = standardized slope; m multiplied by the windowed range of
+the dimensional variable and divided by the cor(pheno, PGS) among
 reference population (band closest to distance 0)
+\item m_hat_se = standard error of the standardized slope m_hat
 }
 \item global: computes cor(pheno, PGS) on all samples
 \itemize{

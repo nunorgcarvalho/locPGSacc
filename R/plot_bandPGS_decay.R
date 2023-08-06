@@ -7,6 +7,7 @@
 #' [get_bandPGS_decay()].
 #' 
 #' @inheritParams get_bandPGS_decay
+#' @param min_samples (optional) integer: minimum number of samples needed in a band to compute PGS accuracy. Must be > 2
 #' @param fixed_ymin (optional) logical: whether the y-axis should start at 0 (default) or just be the minimum accuracy
 #' 
 #' @return Plot of the results of [get_bandPGS_decay()].
@@ -21,9 +22,9 @@ plot_bandPGS_decay <- function (
     col_pheno,
     col_PGS,
     i_omit = c(),
-    window = 0.95,
-    bands = 10,
-    min_samples = 3,
+    ref_window = 0.95,
+    bands = 15,
+    min_samples = 30,
     fixed_ymin = TRUE
 ) {
   
@@ -32,9 +33,8 @@ plot_bandPGS_decay <- function (
                               col_pheno = col_pheno, # for r
                               col_PGS = col_PGS, # for r
                               i_omit = i_omit,
-                              window = window,
-                              bands = bands,
-                              min_samples = min_samples)
+                              ref_window = ref_window,
+                              bands = bands)
   
   band_data <- output$band_data
   
@@ -45,7 +45,7 @@ plot_bandPGS_decay <- function (
                        "~~hat(m)==",m_hat_text,
                        "~~m==",m_text)
   
-  gg <- ggplot(band_data %>% filter(N >= 30), aes(x = median, y = r)) +
+  gg <- ggplot(band_data %>% filter(N >= min_samples), aes(x = median, y = r)) +
     geom_hline(yintercept = output$global$r, color="gray10") +
     geom_point() +
     geom_errorbar(aes(ymin = r_lower, ymax = r_upper)) +

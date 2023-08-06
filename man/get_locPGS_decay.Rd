@@ -51,11 +51,13 @@ Returns a nested list with statistics related to local PGS decay:
 \itemize{
 \item intercept = intercept of line of best fit
 \item m = slope of line of best fit
+\item m_se = standard error of the slope of line of best fit
 \item p = p-value for slope
 \item m_hat = standardized slope; m divided by the cor(pheno, PGS) among
 reference population (the ref_window*100\% individuals (default 5\%)
 with the lowest 'col_dim' in the data); uses mean
 locPGSacc when columns not given
+\item m_hat_se = standard error of the standardized slope m_hat
 }
 \item global: computes cor(pheno, PGS) on all samples
 \itemize{

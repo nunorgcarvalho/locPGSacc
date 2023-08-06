@@ -31,11 +31,13 @@
 #'    \itemize{
 #'      \item intercept = intercept of line of best fit
 #'      \item m = slope of line of best fit
+#'      \item m_se = standard error of the slope of line of best fit
 #'      \item p = p-value for slope
 #'      \item m_hat = standardized slope; m divided by the cor(pheno, PGS) among
 #'            reference population (the ref_window*100% individuals (default 5%)
 #'            with the lowest 'col_dim' in the data); uses mean
 #'            locPGSacc when columns not given
+#'      \item m_hat_se = standard error of the standardized slope m_hat
 #'    }
 #'   \item global: computes cor(pheno, PGS) on all samples
 #'    \itemize{
@@ -81,20 +83,9 @@ get_locPGS_decay <- function(
   
   # output list is established ####
   output <- list(
-    cor = list(
-      r = as.numeric(NA),
-      p = as.numeric(NA),
-      CI95 = as.numeric(NA)
-    ),
-    lm = list(
-      intercept = as.numeric(NA),
-      m = as.numeric(NA),
-      p = as.numeric(NA)
-    ),
-    global = list(
-      r = as.numeric(NA),
-      p = as.numeric(NA) 
-    ),
+    cor = list(),
+    lm = list(),
+    global = list(),
     group = tibble(group = as.character(),
                    N = as.numeric(),
                    N_anchors = as.numeric(),
@@ -142,9 +133,11 @@ get_locPGS_decay <- function(
   # computes linear regression statistics for locPGSacc ~ dim_dist
   lm1 <- lm(locPGSacc ~ dim_dist, data = data_anchors)
   m <- lm1$coefficients[[2]]
+  m_se <- summary(lm1)$coefficients[2,2]
   if (!return_objects) {
     output$lm$intercept<- lm1$coefficients[[1]]
     output$lm$m <- m
+    output$lm$m_se <- m_se
     output$lm$p <- summary(lm1)$coefficients[2,4]
   } else {output$lm <- lm1}
   ## gets standardized m ####
@@ -166,8 +159,10 @@ get_locPGS_decay <- function(
     r_ref <- mean(data_anchors_ref$locPGSacc)
   }
   
-  m_hat <- m / r_ref
+  m_hat <- m / r_ref %>% unname()
+  m_hat_se <- m_se / r_ref %>% unname()
   output$lm$m_hat <- m_hat
+  output$lm$m_hat_se <- m_hat_se
   
   # accuracy ####
   # checks if user provided column name for phenotype and for PGS

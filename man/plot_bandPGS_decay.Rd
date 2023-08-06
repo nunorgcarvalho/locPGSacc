@@ -10,9 +10,9 @@ plot_bandPGS_decay(
   col_pheno,
   col_PGS,
   i_omit = c(),
-  window = 0.95,
-  bands = 10,
-  min_samples = 3,
+  ref_window = 0.95,
+  bands = 15,
+  min_samples = 30,
   fixed_ymin = TRUE
 )
 }
@@ -27,7 +27,7 @@ plot_bandPGS_decay(
 
 \item{i_omit}{(optional) numeric vector: indices of data rows for which to not consider at all in nearest neighbor algorithm}
 
-\item{window}{(optional) numeric: proportion of the distribution, centered at the median, to include when making bands}
+\item{ref_window}{(optional) numeric: proportion of the distribution, centered at the median, to include when making bands}
 
 \item{bands}{(optional) integer: number of bands (i.e. sections) to split up the middle of the sample by according to the dimensional variable. An extra band is made on each end to include dispersed samples.}
 
