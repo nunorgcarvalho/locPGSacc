@@ -114,7 +114,8 @@ get_bandPGS_decay <- function (
     )
   }
   # computes median dimension variable value within each band
-  band_data$median <- ( data %>% group_by(dim_group) %>% summarize(median = median(dim)) )$median
+  band_data$median <- as.numeric(NA)
+  band_data$median[!is.na(band_data$r)] <- ( data %>% group_by(dim_group) %>% summarize(median = median(dim)) )$median
   
   # computes linear regression of band PGS accuracy against the median band distance
   # uses sample size of band as weight
