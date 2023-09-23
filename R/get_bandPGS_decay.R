@@ -50,6 +50,7 @@
 #' @export
 #' 
 #' @import tidyverse
+#' @import psychometric
 
 get_bandPGS_decay <- function (
     data,
@@ -72,7 +73,7 @@ get_bandPGS_decay <- function (
   # gets list of samples with missing data
   i_omit <- (1:nrow(data))[is.na(data[[col_pheno]]) | is.na(data[[col_PGS]]) | is.na(data[[col_dim]])]
   # removes missing data and renames columns of interest
-  data <- data[-i_omit,] %>% select(dim = !!sym(col_dim),
+  data <- data[-i_omit,] %>% dplyr::select(dim = !!sym(col_dim),
                                     pheno = !!sym(col_pheno),
                                     PGS = !!sym(col_PGS))
   # gets range of dimension variable within specified central window of population distribution
@@ -80,17 +81,20 @@ get_bandPGS_decay <- function (
   upp_bound_i <- round((0.5 + ref_window/2)*length(data$dim))
   range. = sort(data$dim)[low_bound_i:upp_bound_i] %>% range()
   # splits up dimension variable according to bands, plus <window and >window samples
-  breaks <- c( min(data$dim), seq(range.[1], range.[2], diff(range.)/bands), max(data$dim) )
+  breaks <- c( min(data$dim), seq(range.[1], range.[2], diff(range.)/(bands-2)), max(data$dim) )
   # assigns individuals into bands
   data$dim_group <- cut(data$dim, breaks = breaks, include.lowest = TRUE)
   # creates empty tibble for later data
   band_data <- tibble(band = as.character(),
-                       min = as.numeric(),
-                       max = as.numeric(),
-                       N = as.numeric(),
-                       r = as.numeric(),
-                       r_lower = as.numeric(),
-                       r_upper = as.numeric() )
+                      min = as.numeric(),
+                      max = as.numeric(),
+                      N = as.numeric(),
+                      r = as.numeric(),
+                      r_lower = as.numeric(),
+                      r_upper = as.numeric(),
+                      R2 = as.numeric(),
+                      R2_lower = as.numeric(),
+                      R2_upper = as.numeric() )
   # loops through band ####
   for (band in levels(data$dim_group)) {
     data_band <- data %>% filter(dim_group == band)
@@ -102,6 +106,9 @@ get_bandPGS_decay <- function (
       # computes correlation between phenotype and PGS for the band
       cor1 <- cor.test(data_band$PGS,data_band$pheno)
     }
+    # computes approximate R2 confidence interval
+    R2 <- cor1$estimate^2
+    R2_CI <- CI.Rsq(R2, n = cor1$parameter+1, k=1, level=0.95)
     # adds data to band_data tibble
     band_data <- band_data %>% add_row(
       band = band,
@@ -110,7 +117,10 @@ get_bandPGS_decay <- function (
       N = nrow(data_band),
       r = cor1$estimate,
       r_lower = cor1$conf.int[1],
-      r_upper = cor1$conf.int[2]
+      r_upper = cor1$conf.int[2],
+      R2 = R2,
+      R2_lower = R2_CI[["LCL"]],
+      R2_upper = R2_CI[["UCL"]]
     )
   }
   # computes median dimension variable value within each band
@@ -119,16 +129,16 @@ get_bandPGS_decay <- function (
   
   # computes linear regression of band PGS accuracy against the median band distance
   # uses sample size of band as weight
-  lm1 <- lm(r ~ median, data = band_data, weights = band_data$N)
+  lm1 <- lm(R2 ~ median, data = band_data, weights = band_data$N)
   m <- lm1$coefficients[[2]]
   m_se <- summary(lm1)$coefficients[2,2]
   
   # gets PGS accuracy of band closest to zero (by median)
   i_ref <- order(band_data$median)[1]
-  r_ref <- band_data$r[i_ref]
+  R2_ref <- band_data$R2[i_ref]
   # adjust m slope by the r_ref and range
-  m_hat <- m * diff(range.) / r_ref %>% unname()
-  m_hat_se <- m_se * diff(range.) / r_ref %>% unname()
+  m_hat <- m * diff(range.) / R2_ref %>% unname()
+  m_hat_se <- m_se * diff(range.) / R2_ref %>% unname()
   
   # computes correlation between phenotype and PGS for entire sample
   cor1 <- cor.test(data$pheno, data$PGS)
@@ -145,6 +155,7 @@ get_bandPGS_decay <- function (
   output$lm$m_hat_se <- m_hat_se
   if (!return_objects) {
     output$global$r <- cor1$estimate
+    output$global$R2 <- cor1$estimate^2
     output$global$p <- cor1$p.value
   } else {output$global <- cor1}
   

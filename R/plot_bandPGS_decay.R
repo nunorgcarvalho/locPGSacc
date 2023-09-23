@@ -45,10 +45,10 @@ plot_bandPGS_decay <- function (
                        "~~hat(m)==",m_hat_text,
                        "~~m==",m_text)
   
-  gg <- ggplot(band_data %>% filter(N >= min_samples), aes(x = median, y = r)) +
-    geom_hline(yintercept = output$global$r, color="gray10") +
+  gg <- ggplot(band_data %>% filter(N >= min_samples), aes(x = median, y = R2)) +
+    geom_hline(yintercept = output$global$R2, color="gray10") +
     geom_point() +
-    geom_errorbar(aes(ymin = r_lower, ymax = r_upper)) +
+    geom_errorbar(aes(ymin = R2_lower, ymax = R2_upper)) +
     geom_abline(intercept = output$lm$intercept, slope = output$lm$m, color = "blue")
   
   # extracts x and y scale from plot so far
