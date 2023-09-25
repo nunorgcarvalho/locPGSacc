@@ -72,8 +72,9 @@ get_bandPGS_decay <- function (
   
   # gets list of samples with missing data
   i_omit <- (1:nrow(data))[is.na(data[[col_pheno]]) | is.na(data[[col_PGS]]) | is.na(data[[col_dim]])]
+  if (length(i_omit) > 0) {data <- data[-i_omit,]}
   # removes missing data and renames columns of interest
-  data <- data[-i_omit,] %>% dplyr::select(dim = !!sym(col_dim),
+  data <- data %>% dplyr::select(dim = !!sym(col_dim),
                                     pheno = !!sym(col_pheno),
                                     PGS = !!sym(col_PGS))
   # gets range of dimension variable within specified central window of population distribution
@@ -102,13 +103,15 @@ get_bandPGS_decay <- function (
     if (nrow(data_band) < 3) {
       cor1 <- list("estimate" = as.numeric(NA),
                    "conf.int" = as.numeric(c(NA,NA)) )
+      R2 <- as.numeric(NA)
+      R2_CI <- list("LCL"=as.numeric(NA),"UCL"=as.numeric(NA))
     } else {
       # computes correlation between phenotype and PGS for the band
       cor1 <- cor.test(data_band$PGS,data_band$pheno)
+      # computes approximate R2 confidence interval
+      R2 <- cor1$estimate^2
+      R2_CI <- CI.Rsq(R2, n = cor1$parameter+1, k=1, level=0.95)
     }
-    # computes approximate R2 confidence interval
-    R2 <- cor1$estimate^2
-    R2_CI <- CI.Rsq(R2, n = cor1$parameter+1, k=1, level=0.95)
     # adds data to band_data tibble
     band_data <- band_data %>% add_row(
       band = band,

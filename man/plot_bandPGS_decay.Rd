@@ -13,7 +13,8 @@ plot_bandPGS_decay(
   ref_window = 0.95,
   bands = 15,
   min_samples = 30,
-  fixed_ymin = TRUE
+  fixed_ymin = TRUE,
+  show_stats = TRUE
 )
 }
 \arguments{
@@ -34,6 +35,8 @@ plot_bandPGS_decay(
 \item{min_samples}{(optional) integer: minimum number of samples needed in a band to compute PGS accuracy. Must be > 2}
 
 \item{fixed_ymin}{(optional) logical: whether the y-axis should start at 0 (default) or just be the minimum accuracy}
+
+\item{show_stats}{(optional) logical: whether the decay slope, standardized decay slope, and corresponding p-value are shown on the plot (top right)}
 }
 \value{
 Plot of the results of \code{\link[=get_bandPGS_decay]{get_bandPGS_decay()}}.
