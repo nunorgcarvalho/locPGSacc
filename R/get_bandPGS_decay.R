@@ -9,9 +9,8 @@
 #' 
 #' @inheritParams get_NNs
 #' @inheritParams get_accuracy
+#' @inheritParams bin_dim
 #' @param col_dim character: column name of the dimensional variable for which to compute bands from
-#' @param ref_window (optional) numeric: proportion of the distribution, centered at the median, to include when making bands
-#' @param bands (optional) integer: number of bands (i.e. sections) to split up the middle of the sample by according to the dimensional variable. An extra band is made on each end to include dispersed samples.  
 #' @param return_objects (optional) logical: whether the function should return the outputs of cor.test() and lm() directly, rather than extracting the most important metrics 
 #' 
 #' @return Returns a nested list with statistics related to banded PGS decay:
@@ -77,14 +76,117 @@ get_bandPGS_decay <- function (
   data <- data %>% dplyr::select(dim = !!sym(col_dim),
                                     pheno = !!sym(col_pheno),
                                     PGS = !!sym(col_PGS))
+  # splits individuals into groups based on dim variable
+  data$dim_group <- bin_dim(data, ref_window = ref_window, bands = bands)
+  
+  # gets per-bin performance
+  band_data <- get_band_data(data)
+  
+  # computes linear regression of band PGS accuracy against the median band distance
+  # uses sample size of band as weight
+  lm1 <- lm(R2 ~ median, data = band_data, weights = band_data$N)
+  m <- lm1$coefficients[[2]]
+  m_se <- summary(lm1)$coefficients[2,2]
+  
+  # gets standardized m and m_se
+  m_hat.list <- standardize_m(data, band_data, m, m_se, ref_window)
+  
+  # computes correlation between phenotype and PGS for entire sample
+  cor1 <- cor.test(data$pheno, data$PGS)
+  
+  # saves data to output list
+  output$band_data <- band_data
+  if (!return_objects) {
+    output$lm$intercept<- lm1$coefficients[[1]]
+    output$lm$m <- m
+    output$lm$m_se <- m_se
+    output$lm$p <- summary(lm1)$coefficients[2,4]
+  } else {output$lm <- lm1}
+  output$lm$m_hat <- m_hat.list$m_hat
+  output$lm$m_hat_se <- m_hat.list$m_hat_se
+  if (!return_objects) {
+    output$global$r <- cor1$estimate
+    output$global$R2 <- cor1$estimate^2
+    output$global$p <- cor1$p.value
+  } else {output$global <- cor1}
+  
+  
+  return(output)
+  
+}
+
+#' @title bin_dim
+#' @description splits a complete, renamed dataset by bins along some variable
+#' @inherit locPGSacc author
+#' 
+#' @details Takes a dataset with complete cases and with column names standardized
+#' ('dim','pheno','PGS') and splits individuals into bins depending on their 'dim'
+#' variable. Internal function.
+#' 
+#' @inheritParams get_bandPGS_decay
+#' @inheritParams get_middle_range
+#' @param bands (optional) integer: number of bands (i.e. sections) to split up the middle of the sample by according to the dimensional variable. An extra band is made on each end to include dispersed samples.  
+#' 
+#' @return Returns a vector of dim groups to apply directly to the dataset:
+#' 
+#' @import tidyverse
+
+bin_dim <- function(data,
+                    ref_window = 0.95,
+                    bands = 15
+) {
+  
+  # gets range of dimension variable within specified central window of population distribution
+  range. <- get_middle_range(data, ref_window = ref_window)
+  
+  # splits up dimension variable according to bands, plus <window and >window samples
+  breaks <- c( min(data$dim), seq(range.[1], range.[2], diff(range.)/(bands-2)), max(data$dim) )
+  # assigns individuals into bands
+  dim_group <- cut(data$dim, breaks = breaks, include.lowest = TRUE)
+  
+  return(dim_group)
+}
+
+#' @title get_middle_range
+#' @description gets the range of the middle percentile specified
+#' @inherit locPGSacc author
+#' 
+#' @details Takes a dataset with complete cases and with column names standardized
+#' ('dim','pheno','PGS') and gets the middle range of the dataset
+#' 
+#' @inheritParams get_bandPGS_decay
+#' @param ref_window (optional) numeric: proportion of the distribution, centered at the median, to include when making bands 
+#' 
+#' @return Returns a range (length-2 numerical vector)
+#' 
+#' @import tidyverse
+
+get_middle_range <- function(data,
+                             ref_window = 0.95
+) {
   # gets range of dimension variable within specified central window of population distribution
   low_bound_i <- round((0.5 - ref_window/2)*length(data$dim))
   upp_bound_i <- round((0.5 + ref_window/2)*length(data$dim))
   range. = sort(data$dim)[low_bound_i:upp_bound_i] %>% range()
-  # splits up dimension variable according to bands, plus <window and >window samples
-  breaks <- c( min(data$dim), seq(range.[1], range.[2], diff(range.)/(bands-2)), max(data$dim) )
-  # assigns individuals into bands
-  data$dim_group <- cut(data$dim, breaks = breaks, include.lowest = TRUE)
+  
+  return(range.)
+}
+
+#' @title get_band_data
+#' @description makes the band_data tibble used in other functions
+#' @inherit locPGSacc author
+#' 
+#' @details Takes a dataset with complete cases and with column names standardized
+#' ('dim','pheno','PGS', 'dim_group') and computes per-bin statistics
+#' 
+#' @inheritParams get_bandPGS_decay
+#'  
+#' @return Returns a tibble with an observation for each bin
+#' 
+#' @import tidyverse
+
+get_band_data <- function(data
+) {
   # creates empty tibble for later data
   band_data <- tibble(band = as.character(),
                       min = as.numeric(),
@@ -130,39 +232,49 @@ get_bandPGS_decay <- function (
   band_data$median <- as.numeric(NA)
   band_data$median[!is.na(band_data$r)] <- ( data %>% group_by(dim_group) %>% summarize(median = median(dim)) )$median
   
-  # computes linear regression of band PGS accuracy against the median band distance
-  # uses sample size of band as weight
-  lm1 <- lm(R2 ~ median, data = band_data, weights = band_data$N)
-  m <- lm1$coefficients[[2]]
-  m_se <- summary(lm1)$coefficients[2,2]
+  return(band_data)
+}
+
+#' @title standardize_m
+#' @description standardizes the portability slope
+#' @inherit locPGSacc author
+#' 
+#' @details standardized slope; m multiplied by the windowed range of 
+#'            the dimensional variable and divided by the cor(pheno, PGS) among
+#'            reference population (band closest to distance 0). This function also
+#'            works for the standard error of the slope if provided
+#' 
+#' @inheritParams get_bandPGS_decay
+#' @param band_data tibble: the band_data tibble produced by [get_band_data()]
+#' @param m numeric: the unstandardized portability slope
+#' @param m_se (optional) numeric: the unstandardized portability slope's standard error
+#' 
+#'  
+#' @return Returns a list with the standardized portability slope (m_hat) and
+#' the standardized portability slope's standard error (m_hat_se) if provided
+#' 
+#' @import tidyverse
+
+standardize_m <- function(data,
+                          band_data,
+                          m,
+                          m_se = NA,
+                          ref_window = 0.95
+) {
   
   # gets PGS accuracy of band closest to zero (by median)
   i_ref <- order(band_data$median)[1]
   R2_ref <- band_data$R2[i_ref]
   # adjust m slope by the r_ref and range
+  range. <- get_middle_range(data, ref_window = ref_window)
   m_hat <- m * diff(range.) / R2_ref %>% unname()
-  m_hat_se <- m_se * diff(range.) / R2_ref %>% unname()
+  # saves to output list
+  out <- list(m_hat = m_hat)
   
-  # computes correlation between phenotype and PGS for entire sample
-  cor1 <- cor.test(data$pheno, data$PGS)
+  if (!is.na(m_se)) {
+    m_hat_se <- m_se * diff(range.) / R2_ref %>% unname()
+    out$m_hat_se <- m_hat_se
+  }
   
-  # saves data to output list
-  output$band_data <- band_data
-  if (!return_objects) {
-    output$lm$intercept<- lm1$coefficients[[1]]
-    output$lm$m <- m
-    output$lm$m_se <- m_se
-    output$lm$p <- summary(lm1)$coefficients[2,4]
-  } else {output$lm <- lm1}
-  output$lm$m_hat <- m_hat
-  output$lm$m_hat_se <- m_hat_se
-  if (!return_objects) {
-    output$global$r <- cor1$estimate
-    output$global$R2 <- cor1$estimate^2
-    output$global$p <- cor1$p.value
-  } else {output$global <- cor1}
-  
-  
-  return(output)
-  
-}
+  return(out)
+} 
