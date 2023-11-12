@@ -9,11 +9,12 @@ PGSdecay.bs(
   col_dim,
   col_pheno,
   col_PGS,
+  B = 1000,
   i_omit = c(),
   ref_window = 0.95,
   bands = 15,
   return_objects = FALSE,
-  B = 1000
+  verbose = TRUE
 )
 }
 \arguments{
@@ -25,6 +26,8 @@ PGSdecay.bs(
 
 \item{col_PGS}{character: column name of the polygenic scores for the phenotype of interest}
 
+\item{B}{(optional) integer: number of bootstrap iterations to perform}
+
 \item{i_omit}{(optional) numeric vector: indices of data rows for which to not consider at all in nearest neighbor algorithm}
 
 \item{ref_window}{(optional) numeric: proportion of the distribution, centered at the median, to include when making bands}
@@ -32,8 +35,6 @@ PGSdecay.bs(
 \item{bands}{(optional) integer: number of bands (i.e. sections) to split up the middle of the sample by according to the dimensional variable. An extra band is made on each end to include dispersed samples.}
 
 \item{return_objects}{(optional) logical: whether the function should return the outputs of cor.test() and lm() directly, rather than extracting the most important metrics}
-
-\item{B}{(optional) integer: number of bootstrap iterations to perform}
 
 \item{verbose}{(optional) logical: whether bootstrapping iteration status should be reported to the console}
 }

@@ -32,11 +32,12 @@ PGSdecay.bs <- function (
     col_dim,
     col_pheno,
     col_PGS,
+    B = 1000,
     i_omit = c(),
     ref_window = 0.95,
     bands = 15,
     return_objects = FALSE,
-    B = 1000
+    verbose = TRUE
 ) {
   
   # used for estimating time left
