@@ -29,7 +29,7 @@ dim_dist(
 \item{col_dist}{(optional) character: output column name of sample's distance in space}
 }
 \description{
-Computes each sample's distance from a specified reference point (centroid if nto given)
+Computes each sample's distance from a specified reference point (centroid if not given)
 }
 \details{
 This function takes a dataset containing sample coordinates in some

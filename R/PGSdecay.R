@@ -1,32 +1,32 @@
-#' @title get_bandPGS_decay
-#' @description Returns statistics related to banded PGS accuracy as a function of some dimensional variable.
+#' @title PGSdecay
+#' @description Returns statistics related to binned PGS accuracy as a function of some continuous/dimensional variable.
 #' @inherit locPGSacc author
 #' 
 #' @details Takes a dataset with columns for a phenotype and its PGS as well as a 
 #' column for a dimensional variable of interest (e.g. genetic distance) and splits the
-#' sample into equal-length bands/sections. PGS accuracy is calculated within each
-#' band and the rate of change of accuracy across the dimensional variable is computed.
+#' sample into equal-length bins. PGS accuracy is calculated within each bin
+#' and the rate of change of accuracy across the dimensional variable is computed.
 #' 
 #' @inheritParams get_NNs
 #' @inheritParams get_accuracy
 #' @inheritParams bin_dim
-#' @param col_dim character: column name of the dimensional variable for which to compute bands from
-#' @param return_objects (optional) logical: whether the function should return the outputs of cor.test() and lm() directly, rather than extracting the most important metrics 
+#' @param col_dim character: column name of the dimensional variable for which to compute bins from
+#' @param return_objects (optional) logical: whether the function should return the outputs of [cor.test()] and [lm()] directly, rather than extracting the most important metrics 
 #' 
-#' @return Returns a nested list with statistics related to banded PGS decay:
+#' @return Returns a nested list with statistics related to PGS decay across bins:
 #' \itemize{
-#'   \item band_data: tibble containing data for each distance band:
+#'   \item bin_data: tibble containing data for each distance bin:
 #'    \itemize{
-#'      \item band = range of distance band
-#'      \item min = minimum distance within band
-#'      \item max = max distance within band
-#'      \item N = number of samples in band
-#'      \item r = correlation between phenotype and PGS within band
+#'      \item bin = range of distance bin
+#'      \item min = minimum distance within bin
+#'      \item max = max distance within bin
+#'      \item N = number of samples in bin
+#'      \item r = correlation between phenotype and PGS within bin
 #'      \item r_lower = lower r estimate from 95% confidence interval
 #'      \item r_upper = upper r estimate from 95% confidence interval
-#'      \item median = median value of dimensional variable of band's samples
+#'      \item median = median value of dimensional variable of bin's samples
 #'    }
-#'   \item lm: computes a linear regression for bandPGSacc ~ dim_dist across the bands
+#'   \item lm: computes a linear regression for bin_R2 ~ dim_dist across all bins
 #'    \itemize{
 #'      \item intercept = intercept of line of best fit
 #'      \item m = slope of line of best fit
@@ -34,7 +34,7 @@
 #'      \item p = p-value for slope
 #'      \item m_hat = standardized slope; m multiplied by the windowed range of 
 #'            the dimensional variable and divided by the cor(pheno, PGS) among
-#'            reference population (band closest to distance 0)
+#'            reference population (bin closest to distance 0)
 #'      \item m_hat_se = standard error of the standardized slope m_hat
 #'    }
 #'   \item global: computes cor(pheno, PGS) on all samples
@@ -51,20 +51,20 @@
 #' @import tidyverse
 #' @import psychometric
 
-get_bandPGS_decay <- function (
+PGSdecay <- function (
     data,
     col_dim,
     col_pheno,
     col_PGS,
     i_omit = c(),
     ref_window = 0.95,
-    bands = 15,
+    bins = 15,
     return_objects = FALSE
 ) {
   
   # output list is established ####
   output <- list(
-    band_data = tibble(),
+    bin_data = tibble(),
     lm = list(),
     global = list()
   )
@@ -77,25 +77,25 @@ get_bandPGS_decay <- function (
                                     pheno = !!sym(col_pheno),
                                     PGS = !!sym(col_PGS))
   # splits individuals into groups based on dim variable
-  data$dim_group <- bin_dim(data, ref_window = ref_window, bands = bands)
+  data$dim_group <- bin_dim(data, ref_window = ref_window, bins = bins)
   
   # gets per-bin performance
-  band_data <- get_band_data(data)
+  bin_data <- get_bin_data(data)
   
-  # computes linear regression of band PGS accuracy against the median band distance
-  # uses sample size of band as weight
-  lm1 <- lm(R2 ~ median, data = band_data, weights = band_data$N)
+  # computes linear regression of bin PGS accuracy against the median bin distance
+  # uses sample size of bin as weight
+  lm1 <- lm(R2 ~ median, data = bin_data, weights = bin_data$N)
   m <- lm1$coefficients[[2]]
   m_se <- summary(lm1)$coefficients[2,2]
   
   # gets standardized m and m_se
-  m_hat.list <- standardize_m(data, band_data, m, m_se, ref_window)
+  m_hat.list <- standardize_m(data, bin_data, m, m_se, ref_window)
   
   # computes correlation between phenotype and PGS for entire sample
   cor1 <- cor.test(data$pheno, data$PGS)
   
   # saves data to output list
-  output$band_data <- band_data
+  output$bin_data <- bin_data
   if (!return_objects) {
     output$lm$intercept<- lm1$coefficients[[1]]
     output$lm$m <- m
@@ -123,9 +123,9 @@ get_bandPGS_decay <- function (
 #' ('dim','pheno','PGS') and splits individuals into bins depending on their 'dim'
 #' variable. Internal function.
 #' 
-#' @inheritParams get_bandPGS_decay
+#' @inheritParams PGSdecay
 #' @inheritParams get_middle_range
-#' @param bands (optional) integer: number of bands (i.e. sections) to split up the middle of the sample by according to the dimensional variable. An extra band is made on each end to include dispersed samples.  
+#' @param bins (optional) integer: number of bins to split up the middle of the sample by according to the dimensional variable. The leftmost and rightmost bins consist of individuals outside of the central window given by ref_window  
 #' 
 #' @return Returns a vector of dim groups to apply directly to the dataset:
 #' 
@@ -133,15 +133,15 @@ get_bandPGS_decay <- function (
 
 bin_dim <- function(data,
                     ref_window = 0.95,
-                    bands = 15
+                    bins = 15
 ) {
   
   # gets range of dimension variable within specified central window of population distribution
   range. <- get_middle_range(data, ref_window = ref_window)
   
-  # splits up dimension variable according to bands, plus <window and >window samples
-  breaks <- c( min(data$dim), seq(range.[1], range.[2], diff(range.)/(bands-2)), max(data$dim) )
-  # assigns individuals into bands
+  # splits up dimension variable according to bins, plus <window and >window samples
+  breaks <- c( min(data$dim), seq(range.[1], range.[2], diff(range.)/(bins-2)), max(data$dim) )
+  # assigns individuals into bins
   dim_group <- cut(data$dim, breaks = breaks, include.lowest = TRUE)
   
   return(dim_group)
@@ -154,8 +154,8 @@ bin_dim <- function(data,
 #' @details Takes a dataset with complete cases and with column names standardized
 #' ('dim','pheno','PGS') and gets the middle range of the dataset
 #' 
-#' @inheritParams get_bandPGS_decay
-#' @param ref_window (optional) numeric: proportion of the distribution, centered at the median, to include when making bands 
+#' @inheritParams PGSdecay
+#' @param ref_window (optional) numeric: proportion of the distribution, centered at the median, to include consider when making the non-leftmost and -rightmost bins. Also affects standardization of portability slope
 #' 
 #' @return Returns a range (length-2 numerical vector)
 #' 
@@ -172,54 +172,54 @@ get_middle_range <- function(data,
   return(range.)
 }
 
-#' @title get_band_data
-#' @description makes the band_data tibble used in other functions
+#' @title get_bin_data
+#' @description makes the bin_data tibble used in other functions
 #' @inherit locPGSacc author
 #' 
 #' @details Takes a dataset with complete cases and with column names standardized
 #' ('dim','pheno','PGS', 'dim_group') and computes per-bin statistics
 #' 
-#' @inheritParams get_bandPGS_decay
+#' @inheritParams PGSdecay
 #'  
 #' @return Returns a tibble with an observation for each bin
 #' 
 #' @import tidyverse
 
-get_band_data <- function(data
+get_bin_data <- function(data
 ) {
   # creates empty tibble for later data
-  band_data <- tibble(band = as.character(),
-                      min = as.numeric(),
-                      max = as.numeric(),
-                      N = as.numeric(),
-                      r = as.numeric(),
-                      r_lower = as.numeric(),
-                      r_upper = as.numeric(),
-                      R2 = as.numeric(),
-                      R2_lower = as.numeric(),
-                      R2_upper = as.numeric() )
-  # loops through band ####
-  for (band in levels(data$dim_group)) {
-    data_band <- data %>% filter(dim_group == band)
-    # skips correlation in band if less than 2 samples are present in band
-    if (nrow(data_band) < 3) {
+  bin_data <- tibble(bin = as.character(),
+                     min = as.numeric(),
+                     max = as.numeric(),
+                     N = as.numeric(),
+                     r = as.numeric(),
+                     r_lower = as.numeric(),
+                     r_upper = as.numeric(),
+                     R2 = as.numeric(),
+                     R2_lower = as.numeric(),
+                     R2_upper = as.numeric() )
+  # loops through bins ####
+  for (bin in levels(data$dim_group)) {
+    data_bin <- data %>% filter(dim_group == bin)
+    # skips correlation in bin if less than 2 samples are present in bin
+    if (nrow(data_bin) < 3) {
       cor1 <- list("estimate" = as.numeric(NA),
                    "conf.int" = as.numeric(c(NA,NA)) )
       R2 <- as.numeric(NA)
       R2_CI <- list("LCL"=as.numeric(NA),"UCL"=as.numeric(NA))
     } else {
-      # computes correlation between phenotype and PGS for the band
-      cor1 <- cor.test(data_band$PGS,data_band$pheno)
+      # computes correlation between phenotype and PGS for the bin
+      cor1 <- cor.test(data_bin$PGS,data_bin$pheno)
       # computes approximate R2 confidence interval
       R2 <- cor1$estimate^2
       R2_CI <- CI.Rsq(R2, n = cor1$parameter+1, k=1, level=0.95)
     }
-    # adds data to band_data tibble
-    band_data <- band_data %>% add_row(
-      band = band,
-      min = min(data_band$dim),
-      max = max(data_band$dim),
-      N = nrow(data_band),
+    # adds data to bin_data tibble
+    bin_data <- bin_data %>% add_row(
+      bin = bin,
+      min = min(data_bin$dim),
+      max = max(data_bin$dim),
+      N = nrow(data_bin),
       r = cor1$estimate,
       r_lower = cor1$conf.int[1],
       r_upper = cor1$conf.int[2],
@@ -228,11 +228,11 @@ get_band_data <- function(data
       R2_upper = R2_CI[["UCL"]]
     )
   }
-  # computes median dimension variable value within each band
-  band_data$median <- as.numeric(NA)
-  band_data$median[!is.na(band_data$r)] <- ( data %>% group_by(dim_group) %>% summarize(median = median(dim)) )$median
+  # computes median dimension variable value within each bin
+  bin_data$median <- as.numeric(NA)
+  bin_data$median[!is.na(bin_data$r)] <- ( data %>% group_by(dim_group) %>% summarize(median = median(dim)) )$median
   
-  return(band_data)
+  return(bin_data)
 }
 
 #' @title standardize_m
@@ -241,11 +241,11 @@ get_band_data <- function(data
 #' 
 #' @details standardized slope; m multiplied by the windowed range of 
 #'            the dimensional variable and divided by the cor(pheno, PGS) among
-#'            reference population (band closest to distance 0). This function also
+#'            reference population (bin closest to distance 0). This function also
 #'            works for the standard error of the slope if provided
 #' 
-#' @inheritParams get_bandPGS_decay
-#' @param band_data tibble: the band_data tibble produced by [get_band_data()]
+#' @inheritParams PGSdecay
+#' @param bin_data tibble: the bin_data tibble produced by [get_bin_data()]
 #' @param m numeric: the unstandardized portability slope
 #' @param m_se (optional) numeric: the unstandardized portability slope's standard error
 #' 
@@ -256,15 +256,15 @@ get_band_data <- function(data
 #' @import tidyverse
 
 standardize_m <- function(data,
-                          band_data,
+                          bin_data,
                           m,
                           m_se = NA,
                           ref_window = 0.95
 ) {
   
-  # gets PGS accuracy of band closest to zero (by median)
-  i_ref <- order(band_data$median)[1]
-  R2_ref <- band_data$R2[i_ref]
+  # gets PGS accuracy of bin closest to zero (by median)
+  i_ref <- order(bin_data$median)[1]
+  R2_ref <- bin_data$R2[i_ref]
   # adjust m slope by the r_ref and range
   range. <- get_middle_range(data, ref_window = ref_window)
   m_hat <- m * diff(range.) / R2_ref %>% unname()

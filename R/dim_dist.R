@@ -1,5 +1,5 @@
 #' @title dim_dist
-#' @description Computes each sample's distance from a specified reference point (centroid if nto given)
+#' @description Computes each sample's distance from a specified reference point (centroid if not given)
 #' @inherit locPGSacc author
 #' 
 #' @details This function takes a dataset containing sample coordinates in some

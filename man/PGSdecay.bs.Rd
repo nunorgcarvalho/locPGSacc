@@ -12,7 +12,7 @@ PGSdecay.bs(
   B = 1000,
   i_omit = c(),
   ref_window = 0.95,
-  bands = 15,
+  bins = 15,
   return_objects = FALSE,
   verbose = TRUE
 )
@@ -20,7 +20,7 @@ PGSdecay.bs(
 \arguments{
 \item{data}{data table containing all necessary columns and rows}
 
-\item{col_dim}{character: column name of the dimensional variable for which to compute bands from}
+\item{col_dim}{character: column name of the dimensional variable for which to compute bins from}
 
 \item{col_pheno}{character: column name of the phenotype of interest}
 
@@ -30,11 +30,11 @@ PGSdecay.bs(
 
 \item{i_omit}{(optional) numeric vector: indices of data rows for which to not consider at all in nearest neighbor algorithm}
 
-\item{ref_window}{(optional) numeric: proportion of the distribution, centered at the median, to include when making bands}
+\item{ref_window}{(optional) numeric: proportion of the distribution, centered at the median, to include consider when making the non-leftmost and -rightmost bins. Also affects standardization of portability slope}
 
-\item{bands}{(optional) integer: number of bands (i.e. sections) to split up the middle of the sample by according to the dimensional variable. An extra band is made on each end to include dispersed samples.}
+\item{bins}{(optional) integer: number of bins to split up the middle of the sample by according to the dimensional variable. The leftmost and rightmost bins consist of individuals outside of the central window given by ref_window}
 
-\item{return_objects}{(optional) logical: whether the function should return the outputs of cor.test() and lm() directly, rather than extracting the most important metrics}
+\item{return_objects}{(optional) logical: whether the function should return the outputs of \code{\link[=cor.test]{cor.test()}} and \code{\link[=lm]{lm()}} directly, rather than extracting the most important metrics}
 
 \item{verbose}{(optional) logical: whether bootstrapping iteration status should be reported to the console}
 }
@@ -48,14 +48,14 @@ returns a list containing parameters estimated from different bootstrap iteratio
 }
 }
 \description{
-Computes band-based PGS decay through bootstrapping
+Computes bin-based PGS decay through bootstrapping
 }
 \details{
-Works the same as get_bandPGSdecay but employs stratified bootstrapping
+Works the same as \link{PGSdecay} but employs stratified bootstrapping
 to generate multiple estimated regression slopes. Instead of resampling over the
 entire sample, resampling is done within each bin to ensure equal representation
 across the distance variable of interest. Best used for estimating the
-significance of PGS decay along some variable
+significance of PGS decay along some variable. Can take a while to finish.
 }
 \author{
 Nuno R. G. Carvalho: \email{nunocarvalho@gatech.edu}

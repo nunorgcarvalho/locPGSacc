@@ -1,55 +1,54 @@
-#' @title plot_bandPGS_decay
-#' @description Computes PGS accuracy along bands of another variable
+#' @title plotPGSdecay
+#' @description Computes PGS accuracy along bins of a continuous variable
 #' @inherit locPGSacc author
 #' 
 #' @details Plots the decay of PGS accuracy along some dimensional variables by
-#' cutting up the dimensional variable into bands/sections. More details in
-#' [get_bandPGS_decay()].
+#' cutting up the dimensional variable into bins. More details in [PGSdecay()].
 #' 
-#' @inheritParams get_bandPGS_decay
-#' @param min_samples (optional) integer: minimum number of samples needed in a band to compute PGS accuracy. Must be > 2
+#' @inheritParams PGSdecay
+#' @param min_samples (optional) integer: minimum number of samples needed in a bin to compute PGS accuracy. Must be > 2
 #' @param fixed_ymin (optional) logical: whether the y-axis should start at 0 (default) or just be the minimum accuracy
 #' @param show_stats (optional) logical: whether the decay slope, standardized decay slope, and corresponding p-value are shown on the plot (top right)
 #' @param plot_rel_dist (optional) logical: whether the x-axis of the plot should be scaled such that the maximum distance is 1. Does not affect portability statistics.
 #' 
-#' @return Plot of the results of [get_bandPGS_decay()].
+#' @return Plot of the results of [PGSdecay()].
 #' 
 #' @export
 #' 
 #' @import tidyverse
 
-plot_bandPGS_decay <- function (
+plotPGSdecay <- function (
     data,
     col_dim,
     col_pheno,
     col_PGS,
     i_omit = c(),
     ref_window = 0.95,
-    bands = 15,
+    bins = 15,
     min_samples = 30,
     fixed_ymin = TRUE,
     show_stats = TRUE,
     plot_rel_dist = FALSE
 ) {
   
-  output <- get_bandPGS_decay(data = data,
-                              col_dim = col_dim,
-                              col_pheno = col_pheno, # for r
-                              col_PGS = col_PGS, # for r
-                              i_omit = i_omit,
-                              ref_window = ref_window,
-                              bands = bands)
+  output <- PGSdecay(data = data,
+                     col_dim = col_dim,
+                     col_pheno = col_pheno,
+                     col_PGS = col_PGS,
+                     i_omit = i_omit,
+                     ref_window = ref_window,
+                     bins = bins)
   
   plot_m <- output$lm$m
-  band_data <- output$band_data
+  bin_data <- output$bin_data
   
   if (plot_rel_dist) {
-    range95 <- diff(c(min(band_data$min),max(band_data$max)))
-    band_data$median <- band_data$median / range95
+    range95 <- diff(c(min(bin_data$min),max(bin_data$max)))
+    bin_data$median <- bin_data$median / range95
     plot_m <- plot_m * range95
   }
   
-  gg <- ggplot(band_data %>% filter(N >= min_samples), aes(x = median, y = R2)) +
+  gg <- ggplot(bin_data %>% filter(N >= min_samples), aes(x = median, y = R2)) +
     geom_hline(yintercept = output$global$R2, color="gray10") +
     geom_point() +
     geom_errorbar(aes(ymin = R2_lower, ymax = R2_upper)) +
