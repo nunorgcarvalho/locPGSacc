@@ -34,7 +34,6 @@ PGSdecay.bs <- function (
     col_PGS,
     B = 1000,
     i_omit = c(),
-    ref_window = 0.95,
     bins = 15,
     return_objects = FALSE,
     verbose = TRUE
@@ -54,7 +53,7 @@ PGSdecay.bs <- function (
                                  pheno = !!sym(col_pheno),
                                  PGS = !!sym(col_PGS))
   # splits individuals into groups based on dim variable
-  data$dim_group <- bin_dim(data, ref_window = ref_window, bins = bins)
+  data$dim_group <- bin_dim(data, bins = bins)
   
   for (b in 1:B) {
     
@@ -76,7 +75,7 @@ PGSdecay.bs <- function (
     m_se <- summary(lm1)$coefficients[2,2]
     
     # gets standardized m and m_se
-    m_hat.list <- standardize_m(data_bs, bin_data, m, m_se, ref_window)
+    m_hat.list <- standardize_m(bin_data, m, m_se)
     
     # saves to output list
     out.bs$m[b] <- m

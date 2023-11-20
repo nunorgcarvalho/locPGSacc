@@ -34,7 +34,7 @@
 #'      \item p = p-value for slope
 #'      \item m_hat = standardized slope; m multiplied by the windowed range of 
 #'            the dimensional variable and divided by the cor(pheno, PGS) among
-#'            reference population (bin closest to distance 0)
+#'            reference population (bin with highest r_lower)
 #'      \item m_hat_se = standard error of the standardized slope m_hat
 #'    }
 #'   \item global: computes cor(pheno, PGS) on all samples
@@ -57,7 +57,6 @@ PGSdecay <- function (
     col_pheno,
     col_PGS,
     i_omit = c(),
-    ref_window = 0.95,
     bins = 15,
     return_objects = FALSE
 ) {
@@ -77,7 +76,7 @@ PGSdecay <- function (
                                     pheno = !!sym(col_pheno),
                                     PGS = !!sym(col_PGS))
   # splits individuals into groups based on dim variable
-  data$dim_group <- bin_dim(data, ref_window = ref_window, bins = bins)
+  data$dim_group <- bin_dim(data, bins = bins)
   
   # gets per-bin performance
   bin_data <- get_bin_data(data)
@@ -89,7 +88,7 @@ PGSdecay <- function (
   m_se <- summary(lm1)$coefficients[2,2]
   
   # gets standardized m and m_se
-  m_hat.list <- standardize_m(data, bin_data, m, m_se, ref_window)
+  m_hat.list <- standardize_m(bin_data, m, m_se)
   
   # computes correlation between phenotype and PGS for entire sample
   cor1 <- cor.test(data$pheno, data$PGS)
@@ -124,52 +123,27 @@ PGSdecay <- function (
 #' variable. Internal function.
 #' 
 #' @inheritParams PGSdecay
-#' @inheritParams get_middle_range
-#' @param bins (optional) integer: number of bins to split up the middle of the sample by according to the dimensional variable. The leftmost and rightmost bins consist of individuals outside of the central window given by ref_window  
+#' @param bins (optional) integer: number of bins to split up the middle of the sample by according to the dimensional variable. The leftmost and rightmost bins will each contain N/bins individuals. The remaining bins will be of varying sample size but equal range  
 #' 
 #' @return Returns a vector of dim groups to apply directly to the dataset:
 #' 
 #' @import tidyverse
 
 bin_dim <- function(data,
-                    ref_window = 0.95,
                     bins = 15
 ) {
   
-  # gets range of dimension variable within specified central window of population distribution
-  range. <- get_middle_range(data, ref_window = ref_window)
+  # splits up dimension variable according to bins
+  range.mid <- quantile(data$dim, c(1/bins, 1 - 1/bins))
+  breaks <- c(min(data$dim),
+              seq(range.mid[1], range.mid[2], diff(range.mid)/(bins-2)),
+              max(data$dim) )
   
-  # splits up dimension variable according to bins, plus <window and >window samples
-  breaks <- c( min(data$dim), seq(range.[1], range.[2], diff(range.)/(bins-2)), max(data$dim) )
+  
   # assigns individuals into bins
   dim_group <- cut(data$dim, breaks = breaks, include.lowest = TRUE)
   
   return(dim_group)
-}
-
-#' @title get_middle_range
-#' @description gets the range of the middle percentile specified
-#' @inherit locPGSacc author
-#' 
-#' @details Takes a dataset with complete cases and with column names standardized
-#' ('dim','pheno','PGS') and gets the middle range of the dataset
-#' 
-#' @inheritParams PGSdecay
-#' @param ref_window (optional) numeric: proportion of the distribution, centered at the median, to include consider when making the non-leftmost and -rightmost bins. Also affects standardization of portability slope
-#' 
-#' @return Returns a range (length-2 numerical vector)
-#' 
-#' @import tidyverse
-
-get_middle_range <- function(data,
-                             ref_window = 0.95
-) {
-  # gets range of dimension variable within specified central window of population distribution
-  low_bound_i <- round((0.5 - ref_window/2)*length(data$dim))
-  upp_bound_i <- round((0.5 + ref_window/2)*length(data$dim))
-  range. = sort(data$dim)[low_bound_i:upp_bound_i] %>% range()
-  
-  return(range.)
 }
 
 #' @title get_bin_data
@@ -244,7 +218,6 @@ get_bin_data <- function(data
 #'            reference population (bin closest to distance 0). This function also
 #'            works for the standard error of the slope if provided
 #' 
-#' @inheritParams PGSdecay
 #' @param bin_data tibble: the bin_data tibble produced by [get_bin_data()]
 #' @param m numeric: the unstandardized portability slope
 #' @param m_se (optional) numeric: the unstandardized portability slope's standard error
@@ -255,18 +228,16 @@ get_bin_data <- function(data
 #' 
 #' @import tidyverse
 
-standardize_m <- function(data,
-                          bin_data,
+standardize_m <- function(bin_data,
                           m,
-                          m_se = NA,
-                          ref_window = 0.95
+                          m_se = NA
 ) {
   
   # gets PGS accuracy of bin closest to zero (by median)
-  i_ref <- order(bin_data$median)[1]
+  i_ref <- order(bin_data$r_lower, decreasing=TRUE)[1]
   R2_ref <- bin_data$R2[i_ref]
   # adjust m slope by the r_ref and range
-  range. <- get_middle_range(data, ref_window = ref_window)
+  range. <- range(bin_data$median)
   m_hat <- m * diff(range.) / R2_ref %>% unname()
   # saves to output list
   out <- list(m_hat = m_hat)

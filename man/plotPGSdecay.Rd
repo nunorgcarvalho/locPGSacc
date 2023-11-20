@@ -29,9 +29,7 @@ plotPGSdecay(
 
 \item{i_omit}{(optional) numeric vector: indices of data rows for which to not consider at all in nearest neighbor algorithm}
 
-\item{ref_window}{(optional) numeric: proportion of the distribution, centered at the median, to include consider when making the non-leftmost and -rightmost bins. Also affects standardization of portability slope}
-
-\item{bins}{(optional) integer: number of bins to split up the middle of the sample by according to the dimensional variable. The leftmost and rightmost bins consist of individuals outside of the central window given by ref_window}
+\item{bins}{(optional) integer: number of bins to split up the middle of the sample by according to the dimensional variable. The leftmost and rightmost bins will each contain N/bins individuals. The remaining bins will be of varying sample size but equal range}
 
 \item{min_samples}{(optional) integer: minimum number of samples needed in a bin to compute PGS accuracy. Must be > 2}
 

@@ -4,18 +4,14 @@
 \alias{standardize_m}
 \title{standardize_m}
 \usage{
-standardize_m(data, bin_data, m, m_se = NA, ref_window = 0.95)
+standardize_m(bin_data, m, m_se = NA)
 }
 \arguments{
-\item{data}{data table containing all necessary columns and rows}
-
 \item{bin_data}{tibble: the bin_data tibble produced by \code{\link[=get_bin_data]{get_bin_data()}}}
 
 \item{m}{numeric: the unstandardized portability slope}
 
 \item{m_se}{(optional) numeric: the unstandardized portability slope's standard error}
-
-\item{ref_window}{(optional) numeric: proportion of the distribution, centered at the median, to include consider when making the non-leftmost and -rightmost bins. Also affects standardization of portability slope}
 }
 \value{
 Returns a list with the standardized portability slope (m_hat) and

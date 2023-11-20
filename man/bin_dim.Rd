@@ -4,12 +4,10 @@
 \alias{bin_dim}
 \title{bin_dim}
 \usage{
-bin_dim(data, ref_window = 0.95, bins = 15)
+bin_dim(data, bins = 15)
 }
 \arguments{
-\item{ref_window}{(optional) numeric: proportion of the distribution, centered at the median, to include consider when making the non-leftmost and -rightmost bins. Also affects standardization of portability slope}
-
-\item{bins}{(optional) integer: number of bins to split up the middle of the sample by according to the dimensional variable. The leftmost and rightmost bins consist of individuals outside of the central window given by ref_window}
+\item{bins}{(optional) integer: number of bins to split up the middle of the sample by according to the dimensional variable. The leftmost and rightmost bins will each contain N/bins individuals. The remaining bins will be of varying sample size but equal range}
 }
 \value{
 Returns a vector of dim groups to apply directly to the dataset:

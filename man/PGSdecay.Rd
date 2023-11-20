@@ -10,7 +10,6 @@ PGSdecay(
   col_pheno,
   col_PGS,
   i_omit = c(),
-  ref_window = 0.95,
   bins = 15,
   return_objects = FALSE
 )
@@ -26,9 +25,7 @@ PGSdecay(
 
 \item{i_omit}{(optional) numeric vector: indices of data rows for which to not consider at all in nearest neighbor algorithm}
 
-\item{ref_window}{(optional) numeric: proportion of the distribution, centered at the median, to include consider when making the non-leftmost and -rightmost bins. Also affects standardization of portability slope}
-
-\item{bins}{(optional) integer: number of bins to split up the middle of the sample by according to the dimensional variable. The leftmost and rightmost bins consist of individuals outside of the central window given by ref_window}
+\item{bins}{(optional) integer: number of bins to split up the middle of the sample by according to the dimensional variable. The leftmost and rightmost bins will each contain N/bins individuals. The remaining bins will be of varying sample size but equal range}
 
 \item{return_objects}{(optional) logical: whether the function should return the outputs of \code{\link[=cor.test]{cor.test()}} and \code{\link[=lm]{lm()}} directly, rather than extracting the most important metrics}
 }
@@ -54,7 +51,7 @@ Returns a nested list with statistics related to PGS decay across bins:
 \item p = p-value for slope
 \item m_hat = standardized slope; m multiplied by the windowed range of
 the dimensional variable and divided by the cor(pheno, PGS) among
-reference population (bin closest to distance 0)
+reference population (bin with highest r_lower)
 \item m_hat_se = standard error of the standardized slope m_hat
 }
 \item global: computes cor(pheno, PGS) on all samples
