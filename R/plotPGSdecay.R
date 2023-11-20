@@ -23,8 +23,8 @@ plotPGSdecay <- function (
     col_pheno,
     col_PGS,
     i_omit = c(),
-    ref_window = 0.95,
     bins = 15,
+    ref_window = 0.95,
     min_samples = 30,
     fixed_ymin = TRUE,
     show_stats = TRUE,
@@ -36,16 +36,17 @@ plotPGSdecay <- function (
                      col_pheno = col_pheno,
                      col_PGS = col_PGS,
                      i_omit = i_omit,
-                     ref_window = ref_window,
-                     bins = bins)
+                     bins = bins,
+                     ref_window = ref_window)
   
   plot_m <- output$lm$m
   bin_data <- output$bin_data
   
   if (plot_rel_dist) {
-    range95 <- diff(c(min(bin_data$min),max(bin_data$max)))
-    bin_data$median <- bin_data$median / range95
-    plot_m <- plot_m * range95
+    #range95 <- diff(c(min(bin_data$min),max(bin_data$max)))
+    range.med <- c(bin_data$min[2],bin_data$max[nrow(bin_data)-1])
+    bin_data$median <- (bin_data$median - range.med[1]) / diff(range.med) 
+    plot_m <- plot_m * diff(range.med)
   }
   
   gg <- ggplot(bin_data %>% filter(N >= min_samples), aes(x = median, y = R2)) +

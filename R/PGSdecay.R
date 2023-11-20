@@ -58,6 +58,7 @@ PGSdecay <- function (
     col_PGS,
     i_omit = c(),
     bins = 15,
+    ref_window = 0.95,
     return_objects = FALSE
 ) {
   
@@ -76,7 +77,7 @@ PGSdecay <- function (
                                     pheno = !!sym(col_pheno),
                                     PGS = !!sym(col_PGS))
   # splits individuals into groups based on dim variable
-  data$dim_group <- bin_dim(data, bins = bins)
+  data$dim_group <- bin_dim(data, bins = bins, ref_window = ref_window)
   
   # gets per-bin performance
   bin_data <- get_bin_data(data)
@@ -124,22 +125,20 @@ PGSdecay <- function (
 #' 
 #' @inheritParams PGSdecay
 #' @param bins (optional) integer: number of bins to split up the middle of the sample by according to the dimensional variable. The leftmost and rightmost bins will each contain N/bins individuals. The remaining bins will be of varying sample size but equal range  
+#' @param ref_window (optional) numeric: proportion of the distribution, centered at the median, to include consider when making the non-leftmost and -rightmost bins. Also affects standardization of portability slope
 #' 
 #' @return Returns a vector of dim groups to apply directly to the dataset:
 #' 
 #' @import tidyverse
 
 bin_dim <- function(data,
-                    bins = 15
+                    bins = 15,
+                    ref_window = 0.95
 ) {
   
   # splits up dimension variable according to bins
-  range.mid <- quantile(data$dim, c(1/bins, 1 - 1/bins))
-  breaks <- c(min(data$dim),
-              seq(range.mid[1], range.mid[2], diff(range.mid)/(bins-2)),
-              max(data$dim) )
-  
-  
+  range. <- quantile(data$dim, c(0.5 - ref_window/2, 0.5 + ref_window/2))
+  breaks <- c( min(data$dim), seq(range.[1], range.[2], diff(range.)/(bins-2)), max(data$dim) )
   # assigns individuals into bins
   dim_group <- cut(data$dim, breaks = breaks, include.lowest = TRUE)
   
@@ -232,13 +231,15 @@ standardize_m <- function(bin_data,
                           m,
                           m_se = NA
 ) {
-  
+  bins <- nrow(bin_data)
   # gets PGS accuracy of bin closest to zero (by median)
-  i_ref <- order(bin_data$r_lower, decreasing=TRUE)[1]
-  R2_ref <- bin_data$R2[i_ref]
+  i_ref <- order(bin_data$r_lower, decreasing=TRUE)
+  #R2_ref <- bin_data$R2[i_ref[1]]
+  R2_ref <- weighted.mean(bin_data$R2[i_ref[1:ceiling(bins/5)]],
+                          bin_data$N[i_ref[1:ceiling(bins/5)]])
   # adjust m slope by the r_ref and range
-  range. <- range(bin_data$median)
-  m_hat <- m * diff(range.) / R2_ref %>% unname()
+  range.med <- c(bin_data$min[2],bin_data$max[bins-1])
+  m_hat <- m * diff(range.med) / R2_ref %>% unname()
   # saves to output list
   out <- list(m_hat = m_hat)
   
